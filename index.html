@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Ponto com Calendário</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 10px;
+        }
+
+        .sistema {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .cabecalho {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .calendario-controle {
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .calendario-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-nav {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-nav:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .mes-ano {
+            font-size: 18px;
+            font-weight: bold;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .dia-atual {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .calendario {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #bdc3c7;
+            margin: 20px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .dia-semana {
+            background: #34495e;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .dia {
+            background: white;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .dia:hover {
+            background: #ecf0f1;
+        }
+
+        .dia.outro-mes {
+            background: #f8f9fa;
+            color: #95a5a6;
+        }
+
+        .dia.selecionado {
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+
+        .dia.com-dados {
+            background: #d5f4e6;
+            font-weight: bold;
+        }
+
+        .dia.com-dados.selecionado {
+            background: #27ae60;
+            color: white;
+        }
+
+        .controles {
+            background: #ecf0f1;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .grupo-controle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .grupo-controle input {
+            padding: 6px 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            text-align: center;
+            width: 100px;
+        }
+
+        .botoes {
+            background: #ecf0f1;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #bdc3c7;
+        }
+
+        .botao {
+            padding: 8px 16px;
+            margin: 0 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .botao-salvar {
+            background: #27ae60;
+            color: white;
+        }
+
+        .botao-limpar {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .botao-exportar {
+            background: #8e44ad;
+            color: white;
+        }
+
+        .secao {
+            margin: 20px;
+        }
+
+        .titulo-secao {
+            background: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .titulo-secao.azul {
+            background: #3498db;
+        }
+
+        .titulo-secao.laranja {
+            background: #e67e22;
+        }
+
+        .container-tabela {
+            overflow-x: auto;
+            border: 1px solid #bdc3c7;
+            border-top: none;
+        }
+
+        .tabela {
+            width: 100%;
+            min-width: 900px;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .tabela th,
+        .tabela td {
+            border: 1px solid #bdc3c7;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .tabela th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .nome-funcionario {
+            background: #ecf0f1;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 10px;
+            width: 120px;
+        }
+
+        .campo-hora {
+            width: 80px;
+            padding: 4px;
+            border: 1px solid #95a5a6;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .resultado {
+            background: #d5f4e6;
+            font-weight: bold;
+            min-width: 70px;
+        }
+
+        .resultado-valor {
+            background: #fef5e7;
+            font-weight: bold;
+            min-width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sistema">
+        <div class="cabecalho">
+            <h1>Sistema de Controle de Ponto</h1>
+            <p>Calendário de Horas Extras e Adicional Noturno</p>
+        </div>
+
+        <div class="calendario-controle">
+            <div class="calendario-nav">
+                <button class="btn-nav" onclick="mesAnterior()">‹ Mês Anterior</button>
+                <div class="mes-ano" id="mesAno">Setembro 2025</div>
+                <button class="btn-nav" onclick="proximoMes()">Próximo Mês ›</button>
+            </div>
+            <div class="dia-atual" id="diaAtual">Selecione um dia</div>
+        </div>
+
+        <div class="calendario" id="calendario">
+            <!-- Calendário será gerado aqui -->
+        </div>
+
+        <div class="controles">
+            <div class="grupo-controle">
+                <strong>Jornada (h):</strong>
+                <input type="number" id="jornada" value="8" step="0.5" min="1" max="12">
+            </div>
+            <div class="grupo-controle">
+                <strong>Valor Hora (R$):</strong>
+                <input type="number" id="valorHora" value="15.00" step="0.01" min="0">
+            </div>
+        </div>
+
+        <div class="botoes">
+            <button class="botao botao-salvar" onclick="salvarDia()">💾 Salvar Dia</button>
+            <button class="botao botao-limpar" onclick="limparDia()">🗑 Limpar Dia</button>
+           
+        <div class="secao">
+            <div class="titulo-secao">ENTRADA DE DADOS - Registro de Ponto</div>
+            <div class="container-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>
+                            <th>Funcionário</th>
+                            <th>Entrada</th>
+                            <th>Início Intervalo</th>
+                            <th>Fim Intervalo</th>
+                            <th>Saída</th>
+                            <th>Total Real</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaEntrada">
+                        <!-- Funcionários serão gerados aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="secao">
+            <div class="titulo-secao azul">RESUMO DE HORAS</div>
+            <div class="container-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>
+                            <th>Funcionário</th>
+                            <th>Horas<br>Trabalhadas</th>
+                            <th>Horas<br>Diurnas</th>
+                            <th>Horas<br>Noturnas</th>
+                            <th>Horas<br>Extras</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaResumo">
+                        <!-- Resumo será gerado aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="secao">
+            <div class="titulo-secao laranja">VALORES A PAGAR</div>
+            <div class="container-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>
+                            <th>Funcionário</th>
+                            <th>Valor<br>Horas Extras</th>
+                            <th>Valor<br>Adicional Noturno</th>
+                            <th>Total<br>a Pagar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaValores">
+                        <!-- Valores serão gerados aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const funcionarios = [
+            'Adriana', 'Ariany', 'Bruna Dias', 'Bruno Merez', 'Carina Gomes',
+            'Daweld', 'Diego', 'Elza', 'Estefani', 'Flavia', 'Francisca',
+            'Joseane', 'Marcelo Valente', 'Marcelo Aparecido', 'Nicolly Santos',
+            'Roberto Alves', 'Vinicius Santos'
+        ];
+
+        let mesAtual = 8; // Setembro (0-11)
+        let anoAtual = 2025;
+        let diaSelecionado = null;
+        let dadosSalvos = {}; // Armazenar dados por data
+
+        function formatarHoras(horas) {
+            const h = Math.floor(horas);
+            const m = Math.round((horas - h) * 60);
+            return h + "h" + m.toString().padStart(2, "0");
+        }
+
+        function converterHora(horaStr) {
+            if (!horaStr) return { h: 0, m: 0 };
+            const [h, m] = horaStr.split(':').map(Number);
+            return { h: h || 0, m: m || 0 };
+        }
+
+        function gerarCalendario() {
+            const calendario = document.getElementById('calendario');
+            calendario.innerHTML = '';
+
+            // Cabeçalho dos dias da semana
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            diasSemana.forEach(dia => {
+                const div = document.createElement('div');
+                div.className = 'dia-semana';
+                div.textContent = dia;
+                calendario.appendChild(div);
+            });
+
+            // Primeiro dia do mês e dias no mês
+            const primeiroDia = new Date(anoAtual, mesAtual, 1);
+            const ultimoDia = new Date(anoAtual, mesAtual + 1, 0);
+            const diasNoMes = ultimoDia.getDate();
+            const diaSemanaInicio = primeiroDia.getDay();
+
+            // Dias do mês anterior
+            const mesAnteriorUltimoDia = new Date(anoAtual, mesAtual, 0).getDate();
+            for (let i = diaSemanaInicio - 1; i >= 0; i--) {
+                const div = document.createElement('div');
+                div.className = 'dia outro-mes';
+                div.textContent = mesAnteriorUltimoDia - i;
+                calendario.appendChild(div);
+            }
+
+            // Dias do mês atual
+            for (let dia = 1; dia <= diasNoMes; dia++) {
+                const div = document.createElement('div');
+                div.className = 'dia';
+                div.textContent = dia;
+                div.onclick = () => selecionarDia(dia);
+                
+                const chaveData = `${anoAtual}-${mesAtual}-${dia}`;
+                if (dadosSalvos[chaveData]) {
+                    div.classList.add('com-dados');
+                }
+                
+                calendario.appendChild(div);
+            }
+
+            // Completar com dias do próximo mês
+            const totalCelulas = calendario.children.length;
+            const celulasFaltantes = 42 - totalCelulas; // 6 semanas x 7 dias
+            for (let dia = 1; dia <= celulasFaltantes; dia++) {
+                const div = document.createElement('div');
+                div.className = 'dia outro-mes';
+                div.textContent = dia;
+                calendario.appendChild(div);
+            }
+
+            // Atualizar título
+            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            document.getElementById('mesAno').textContent = `${meses[mesAtual]} ${anoAtual}`;
+        }
+
+        function selecionarDia(dia) {
+            // Remover seleção anterior
+            document.querySelectorAll('.dia.selecionado').forEach(d => d.classList.remove('selecionado'));
+            
+            // Selecionar novo dia
+            const dias = document.querySelectorAll('.dia:not(.outro-mes)');
+            dias[dia - 1].classList.add('selecionado');
+            
+            diaSelecionado = dia;
+            document.getElementById('diaAtual').textContent = `${dia}/${mesAtual + 1}/${anoAtual}`;
+            
+            // Carregar dados do dia
+            carregarDadosDia();
+        }
+
+        function mesAnterior() {
+            mesAtual--;
+            if (mesAtual < 0) {
+                mesAtual = 11;
+                anoAtual--;
+            }
+            diaSelecionado = null;
+            document.getElementById('diaAtual').textContent = 'Selecione um dia';
+            gerarCalendario();
+            limparFormulario();
+        }
+
+        function proximoMes() {
+            mesAtual++;
+            if (mesAtual > 11) {
+                mesAtual = 0;
+                anoAtual++;
+            }
+            diaSelecionado = null;
+            document.getElementById('diaAtual').textContent = 'Selecione um dia';
+            gerarCalendario();
+            limparFormulario();
+        }
+
+        function criarTabelas() {
+            // Tabela de entrada
+            const tabelaEntrada = document.getElementById('tabelaEntrada');
+            tabelaEntrada.innerHTML = '';
+            
+            funcionarios.forEach((nome, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="nome-funcionario">${nome}</td>
+                    <td><input type="time" class="campo-hora" id="entrada-${i}" onchange="calcularTodos()"></td>
+                    <td><input type="time" class="campo-hora" id="iniInt-${i}" onchange="calcularTodos()"></td>
+                    <td><input type="time" class="campo-hora" id="fimInt-${i}" onchange="calcularTodos()"></td>
+                    <td><input type="time" class="campo-hora" id="saida-${i}" onchange="calcularTodos()"></td>
+                    <td class="resultado" id="totalReal-${i}">0h00</td>
+                `;
+                tabelaEntrada.appendChild(tr);
+            });
+
+            // Tabela de resumo
+            const tabelaResumo = document.getElementById('tabelaResumo');
+            tabelaResumo.innerHTML = '';
+            
+            funcionarios.forEach((nome, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="nome-funcionario">${nome}</td>
+                    <td class="resultado" id="horasTrab-${i}">0h00</td>
+                    <td class="resultado" id="horasDiur-${i}">0h00</td>
+                    <td class="resultado" id="horasNot-${i}">0h00</td>
+                    <td class="resultado" id="horasExt-${i}">0h00</td>
+                `;
+                tabelaResumo.appendChild(tr);
+            });
+
+            // Tabela de valores
+            const tabelaValores = document.getElementById('tabelaValores');
+            tabelaValores.innerHTML = '';
+            
+            funcionarios.forEach((nome, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="nome-funcionario">${nome}</td>
+                    <td class="resultado-valor" id="valorExt-${i}">R$ 0,00</td>
+                    <td class="resultado-valor" id="valorNot-${i}">R$ 0,00</td>
+                    <td class="resultado-valor" id="valorTot-${i}">R$ 0,00</td>
+                `;
+                tabelaValores.appendChild(tr);
+            });
+        }
+
+        function calcularFuncionario(i) {
+            const entrada = converterHora(document.getElementById(`entrada-${i}`).value);
+            const iniInt = converterHora(document.getElementById(`iniInt-${i}`).value);
+            const fimInt = converterHora(document.getElementById(`fimInt-${i}`).value);
+            const saida = converterHora(document.getElementById(`saida-${i}`).value);
+
+            if (!entrada.h && !saida.h) {
+                document.getElementById(`totalReal-${i}`).textContent = '0h00';
+                document.getElementById(`horasTrab-${i}`).textContent = '0h00';
+                document.getElementById(`horasDiur-${i}`).textContent = '0h00';
+                document.getElementById(`horasNot-${i}`).textContent = '0h00';
+                document.getElementById(`horasExt-${i}`).textContent = '0h00';
+                document.getElementById(`valorExt-${i}`).textContent = 'R$ 0,00';
+                document.getElementById(`valorNot-${i}`).textContent = 'R$ 0,00';
+                document.getElementById(`valorTot-${i}`).textContent = 'R$ 0,00';
+                return;
+            }
+
+            // Calcular total trabalhado
+            let totalMinutos = (saida.h * 60 + saida.m) - (entrada.h * 60 + entrada.m);
+            if (iniInt.h && fimInt.h && fimInt.h >= iniInt.h) {
+                totalMinutos -= (fimInt.h * 60 + fimInt.m) - (iniInt.h * 60 + iniInt.m);
+            }
+            const totalReal = totalMinutos / 60;
+
+            // Calcular horas noturnas (22h às 5h)
+            let minutosNoturnoReais = 0;
+            
+            // Trabalho entre 00:00 e 05:00 (madrugada)
+            if (entrada.h < 5) {
+                minutosNoturnoReais += Math.max(0, Math.min(saida.h * 60 + saida.m, 5 * 60) - (entrada.h * 60 + entrada.m));
+            }
+            
+            // Trabalho a partir das 22:00
+            if (saida.h >= 22) {
+                minutosNoturnoReais += Math.max(0, (saida.h * 60 + saida.m) - Math.max(entrada.h * 60 + entrada.m, 22 * 60));
+            }
+            
+            // Descontar intervalo se for noturno
+            if (iniInt.h && fimInt.h) {
+                if ((iniInt.h < 5 && fimInt.h <= 5) || (iniInt.h >= 22 && fimInt.h >= 22)) {
+                    minutosNoturnoReais -= (fimInt.h * 60 + fimInt.m) - (iniInt.h * 60 + iniInt.m);
+                }
+            }
+            
+            minutosNoturnoReais = Math.max(0, minutosNoturnoReais);
+
+            // Aplicar regra trabalhista: 1h noturna = 52,5 minutos
+            const horasNoturnas = minutosNoturnoReais / 52.5;
+            const horasDiurnas = totalReal - (minutosNoturnoReais / 60);
+            const horasTrabalhadas = horasDiurnas + horasNoturnas;
+
+            const jornada = parseFloat(document.getElementById('jornada').value);
+            const horasExtras = Math.max(0, horasTrabalhadas - jornada);
+
+            // Cálculos financeiros
+            const valorHora = parseFloat(document.getElementById('valorHora').value);
+            const extrasNormais = Math.max(0, horasDiurnas - jornada);
+            const valorExtras = extrasNormais * valorHora * 1.5; // 50% extra
+            const valorNoturno = horasNoturnas * valorHora * 0.2; // 20% adicional
+            const horasNormais = Math.min(horasDiurnas, jornada);
+            const valorTotal = (horasNormais * valorHora) + valorExtras + valorNoturno;
+
+            // Atualizar interface
+            document.getElementById(`totalReal-${i}`).textContent = formatarHoras(totalReal);
+            document.getElementById(`horasTrab-${i}`).textContent = formatarHoras(horasTrabalhadas);
+            document.getElementById(`horasDiur-${i}`).textContent = formatarHoras(horasDiurnas);
+            document.getElementById(`horasNot-${i}`).textContent = formatarHoras(horasNoturnas);
+            document.getElementById(`horasExt-${i}`).textContent = formatarHoras(horasExtras);
+            document.getElementById(`valorExt-${i}`).textContent = 'R$ ' + valorExtras.toFixed(2);
+            document.getElementById(`valorNot-${i}`).textContent = 'R$ ' + valorNoturno.toFixed(2);
+            document.getElementById(`valorTot-${i}`).textContent = 'R$ ' + valorTotal.toFixed(2);
+        }
+
+        function calcularTodos() {
+            funcionarios.forEach((_, i) => calcularFuncionario(i));
+        }
+
+        function salvarDia() {
+            if (!diaSelecionado) {
+                alert('Selecione um dia primeiro!');
+                return;
+            }
+
+            const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+            const dados = {};
+
+            funcionarios.forEach((_, i) => {
+                dados[i] = {
+                    entrada: document.getElementById(`entrada-${i}`).value,
+                    iniInt: document.getElementById(`iniInt-${i}`).value,
+                    fimInt: document.getElementById(`fimInt-${i}`).value,
+                    saida: document.getElementById(`saida-${i}`).value
+                };
+            });
+
+            dadosSalvos[chaveData] = dados;
+            gerarCalendario();
+            selecionarDia(diaSelecionado);
+            alert('Dados salvos com sucesso!');
+        }
+
+        function carregarDadosDia() {
+            if (!diaSelecionado) return;
+
+            const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+            const dados = dadosSalvos[chaveData];
+
+            if (dados) {
+                funcionarios.forEach((_, i) => {
+                    const d = dados[i] || {};
+                    document.getElementById(`entrada-${i}`).value = d.entrada || '';
+                    document.getElementById(`iniInt-${i}`).value = d.iniInt || '';
+                    document.getElementById(`fimInt-${i}`).value = d.fimInt || '';
+                    document.getElementById(`saida-${i}`).value = d.saida || '';
+                });
+                calcularTodos();
+            } else {
+                limparFormulario();
+            }
+        }
+
+        function limparFormulario() {
+            funcionarios.forEach((_, i) => {
+                ['entrada', 'iniInt', 'fimInt', 'saida'].forEach(campo => {
+                    document.getElementById(`${campo}-${i}`).value = '';
+                });
+            });
+            calcularTodos();
+        }
+
+        function limparDia() {
+            if (!diaSelecionado) {
+                alert('Selecione um dia primeiro!');
+                return;
+            }
+
+            if (confirm('Tem certeza que deseja limpar os dados deste dia?')) {
+                const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+                delete dadosSalvos[chaveData];
+                limparFormulario();
+                gerarCalendario();
+                selecionarDia(diaSelecionado);
+                alert('Dados do dia limpos com sucesso!');
+            }
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            criarTabelas();
+            gerarCalendario();
+        });
+    </script>
+</body>
+</html>
