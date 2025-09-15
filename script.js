@@ -32,32 +32,12 @@ async function chamarAPI(action, dados = {}) {
     }
 }
 
-// Carregar dados na inicialização
+// Carregar dados na inicialização (DESABILITADO TEMPORARIAMENTE)
 async function carregarDadosIniciais() {
-    console.log('🔄 Carregando dados salvos...');
+    console.log('🔄 Carregamento automático DESABILITADO (modo teste)');
+    console.log('✅ Sistema inicializado em modo manual!');
     
-    try {
-        // Carregar configurações dos funcionários
-        const configsResult = await chamarAPI('carregarConfigs');
-        if (configsResult && configsResult.configs) {
-            configFuncionarios = configsResult.configs;
-            console.log('✅ Configurações carregadas:', Object.keys(configFuncionarios).length);
-            atualizarVisualConfigurados();
-        }
-        
-        // Carregar feriados
-        const feriadosResult = await chamarAPI('carregarFeriados');
-        if (feriadosResult && feriadosResult.feriados) {
-            feriadosCalendario = feriadosResult.feriados;
-            console.log('✅ Feriados carregados:', Object.keys(feriadosCalendario).length);
-        }
-        
-        console.log('✅ Todos os dados carregados!');
-    } catch (error) {
-        console.error('❌ Erro ao carregar dados:', error);
-    }
-    
-    // Gerar calendário após carregar dados
+    // Só gerar calendário, sem carregar dados
     gerarCalendario();
 }
 
@@ -244,13 +224,18 @@ function gerarCalendario() {
 }
 
 function selecionarDia(dia) {
+    console.log('📅 Selecionando dia:', dia);
+    
     document.querySelectorAll('.dia.selecionado').forEach(d => d.classList.remove('selecionado'));
     const dias = document.querySelectorAll('.dia:not(.outro-mes)');
     dias[dia - 1].classList.add('selecionado');
     
     diaSelecionado = dia;
     document.getElementById('diaAtual').textContent = `${dia}/${mesAtual + 1}/${anoAtual}`;
-    carregarDadosDia();
+    
+    // CARREGAR DADOS DESABILITADO TEMPORARIAMENTE
+    console.log('🔄 Carregamento automático desabilitado - use os formulários normalmente');
+    limparFormulario();
 }
 
 function mesAnterior() {
@@ -348,40 +333,22 @@ async function salvarFeriado() {
     
     const chaveData = `${anoAtual}-${mesAtual}-${diaConfigurandoFeriado}`;
     
-    let resultado;
     if (tipoFeriadoSelecionado === 'normal') {
         delete feriadosCalendario[chaveData];
-        resultado = await chamarAPI('salvarFeriado', {
-            data: chaveData,
-            remover: true
-        });
     } else if (tipoFeriadoSelecionado === 'feriado') {
         const descricao = document.getElementById('inputDescricao').value || 'Feriado';
         feriadosCalendario[chaveData] = { tipo: 'feriado', descricao: descricao };
-        resultado = await chamarAPI('salvarFeriado', {
-            data: chaveData,
-            tipo: 'feriado',
-            descricao: descricao
-        });
     } else if (tipoFeriadoSelecionado === 'especial') {
         feriadosCalendario[chaveData] = { tipo: 'especial', descricao: 'Dia Especial' };
-        resultado = await chamarAPI('salvarFeriado', {
-            data: chaveData,
-            tipo: 'especial',
-            descricao: 'Dia Especial'
-        });
     }
     
-    if (resultado) {
-        gerarCalendario();
-        if (diaSelecionado === diaConfigurandoFeriado) {
-            calcularTodos();
-        }
-        fecharModal('modalFeriado');
-        alert('Configuração do dia salva com sucesso!');
-    } else {
-        alert('Erro ao salvar configuração!');
+    gerarCalendario();
+    if (diaSelecionado === diaConfigurandoFeriado) {
+        calcularTodos();
     }
+    
+    fecharModal('modalFeriado');
+    alert('Configuração do dia salva (apenas localmente - modo teste)!');
 }
 
 // ========================================
@@ -431,7 +398,7 @@ function adicionarFuncionario() {
     criarTabelas();
     
     if (diaSelecionado) {
-        carregarDadosDia();
+        limparFormulario();
     }
 
     alert(`Funcionário "${nome}" adicionado com sucesso!`);
@@ -475,7 +442,7 @@ function removerFuncionario(index) {
         criarTabelas();
         
         if (diaSelecionado) {
-            carregarDadosDia();
+            limparFormulario();
         }
 
         alert(`Funcionário "${nome}" removido com sucesso!`);
@@ -543,20 +510,12 @@ async function salvarConfiguracao() {
         jornadaDescanso: parseFloat(document.getElementById('jornadaDescanso').value)
     };
 
-    const resultado = await chamarAPI('salvarConfig', {
-        funcionarioId: funcionarioAtual,
-        config: config
-    });
-
-    if (resultado) {
-        configFuncionarios[funcionarioAtual] = config;
-        atualizarVisualConfigurados();
-        calcularTodos();
-        fecharModal('modalConfig');
-        alert('Configuração salva com sucesso!');
-    } else {
-        alert('Erro ao salvar configuração!');
-    }
+    // SALVAR APENAS LOCALMENTE (MODO TESTE)
+    configFuncionarios[funcionarioAtual] = config;
+    atualizarVisualConfigurados();
+    calcularTodos();
+    fecharModal('modalConfig');
+    alert('Configuração salva localmente (modo teste)!');
 }
 
 function atualizarVisualConfigurados() {
@@ -594,19 +553,12 @@ async function salvarDia() {
         };
     });
 
-    const resultado = await chamarAPI('salvarDia', {
-        chaveData: chaveData,
-        dados: dados
-    });
-
-    if (resultado) {
-        dadosSalvos[chaveData] = dados;
-        gerarCalendario();
-        selecionarDia(diaSelecionado);
-        alert('Dados salvos com sucesso!');
-    } else {
-        alert('Erro ao salvar dados! Verifique sua conexão.');
-    }
+    // MODO TESTE: salvar apenas localmente
+    console.log('💾 Salvando dados localmente (modo teste):', dados);
+    dadosSalvos[chaveData] = dados;
+    gerarCalendario();
+    selecionarDia(diaSelecionado);
+    alert('Dados salvos localmente (modo teste)!');
 }
 
 async function carregarDadosDia() {
@@ -614,13 +566,9 @@ async function carregarDadosDia() {
 
     const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
     
-    const resultado = await chamarAPI('carregarDia', {
-        chaveData: chaveData
-    });
-
-    if (resultado && resultado.dados) {
-        const dados = resultado.dados;
-        dadosSalvos[chaveData] = dados;
+    // CARREGAR APENAS DOS DADOS LOCAIS
+    if (dadosSalvos[chaveData]) {
+        const dados = dadosSalvos[chaveData];
         funcionarios.forEach((_, i) => {
             const d = dados[i] || {};
             document.getElementById(`entrada-${i}`).value = d.entrada || '';
@@ -653,20 +601,11 @@ async function limparDia() {
     if (confirm('Tem certeza que deseja limpar os dados deste dia?')) {
         const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
         
-        const resultado = await chamarAPI('salvarDia', {
-            chaveData: chaveData,
-            dados: {}
-        });
-
-        if (resultado) {
-            delete dadosSalvos[chaveData];
-            limparFormulario();
-            gerarCalendario();
-            selecionarDia(diaSelecionado);
-            alert('Dados do dia limpos com sucesso!');
-        } else {
-            alert('Erro ao limpar dados!');
-        }
+        delete dadosSalvos[chaveData];
+        limparFormulario();
+        gerarCalendario();
+        selecionarDia(diaSelecionado);
+        alert('Dados do dia limpos com sucesso!');
     }
 }
 
@@ -859,7 +798,7 @@ function fecharModal(modalId) {
 // ========================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Iniciando sistema...');
+    console.log('🚀 Iniciando sistema (MODO TESTE)...');
     
     // Event listeners para cálculo do total semanal
     ['jornadaSeg', 'jornadaTer', 'jornadaQua', 'jornadaQui', 'jornadaSex', 'jornadaSab', 'jornadaDom', 'jornadaDescanso'].forEach(id => {
@@ -872,10 +811,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicialização do sistema
     criarTabelas();
     
-    // Carregar dados salvos do Google Sheets
+    // Carregar dados (modo teste - sem Google Sheets)
     carregarDadosIniciais();
     
-    console.log('✅ Sistema inicializado!');
+    console.log('✅ Sistema inicializado em MODO TESTE!');
+    console.log('📋 Funcionalidades disponíveis:');
+    console.log('   ✅ Calendário e seleção de dias');
+    console.log('   ✅ Inserção de horários');
+    console.log('   ✅ Cálculos automáticos');
+    console.log('   ✅ Configuração de funcionários');
+    console.log('   ⚠️ Salvamento apenas LOCAL (não vai para Google Sheets)');
 });
 
 // Event listener para fechar modais clicando fora
