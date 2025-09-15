@@ -242,6 +242,9 @@ function gerarCalendario() {
     document.getElementById('mesAno').textContent = `${meses[mesAtual]} ${anoAtual}`;
 }
 
+// Variável para controlar quando pular o carregamento
+let saltarCarregamento = false;
+
 function selecionarDia(dia) {
     console.log('Selecionando dia:', dia);
     
@@ -252,11 +255,13 @@ function selecionarDia(dia) {
     diaSelecionado = dia;
     document.getElementById('diaAtual').textContent = `${dia}/${mesAtual + 1}/${anoAtual}`;
     
-    // APENAS carregar dados se não estiver em processo de salvamento
-    // Para evitar que carregue e limpe após salvar
-    setTimeout(() => {
+    // Só carregar dados se não for após um salvamento
+    if (!saltarCarregamento) {
         carregarDadosDia();
-    }, 100); // Pequeno delay para evitar conflito com salvamento
+    } else {
+        console.log('Saltando carregamento - dados já estão na tela');
+        saltarCarregamento = false; // Reset da flag
+    }
 }
 
 function mesAnterior() {
@@ -608,14 +613,17 @@ async function salvarDia() {
     });
 
     if (resultado) {
-        // Salvar dados localmente para manter na interface
+        // Marcar para pular próximo carregamento
+        saltarCarregamento = true;
+        
+        // Salvar dados localmente
         dadosSalvos[chaveData] = dados;
         
-        // Atualizar calendário para mostrar que tem dados
+        // Atualizar calendário
         gerarCalendario();
         
-        // IMPORTANTE: NÃO chamar selecionarDia() aqui
-        // Isso evita o recarregamento automático que limpa os dados
+        // Reselecionar dia (mas sem carregar por causa da flag)
+        selecionarDia(diaSelecionado);
         
         alert('Dados salvos no Google Sheets!');
     } else {
