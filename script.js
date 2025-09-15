@@ -1,5 +1,68 @@
 // ========================================
-// VARIÁVEIS GLOBAIS
+// CONFIGURAÇÃO DA API GOOGLE SHEETS
+// ========================================
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbz-mnOdMV9iKY9gJTKyVqa-PJrN6c_C_4RV_L58PN6O2cjin54iWleH21sV3iEMAME2/exec';
+
+// Função para fazer requisições à API
+async function chamarAPI(action, dados = {}) {
+    try {
+        console.log('Chamando API:', action);
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: action,
+                ...dados
+            })
+        });
+        
+        const resultado = await response.json();
+        if (!resultado.success) {
+            console.error('Erro da API:', resultado.error);
+            return null;
+        }
+        console.log('API sucesso:', action);
+        return resultado;
+    } catch (error) {
+        console.error('Erro de conexão:', error);
+        return null;
+    }
+}
+
+// Carregar dados na inicialização
+async function carregarDadosIniciais() {
+    console.log('🔄 Carregando dados salvos...');
+    
+    try {
+        // Carregar configurações dos funcionários
+        const configsResult = await chamarAPI('carregarConfigs');
+        if (configsResult && configsResult.configs) {
+            configFuncionarios = configsResult.configs;
+            console.log('✅ Configurações carregadas:', Object.keys(configFuncionarios).length);
+            atualizarVisualConfigurados();
+        }
+        
+        // Carregar feriados
+        const feriadosResult = await chamarAPI('carregarFeriados');
+        if (feriadosResult && feriadosResult.feriados) {
+            feriadosCalendario = feriadosResult.feriados;
+            console.log('✅ Feriados carregados:', Object.keys(feriadosCalendario).length);
+        }
+        
+        console.log('✅ Todos os dados carregados!');
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados:', error);
+    }
+    
+    // Gerar calendário após carregar dados
+    gerarCalendario();
+}
+
+// ========================================
+// VARIÁVEIS GLOBAIS (MANTIDAS ORIGINAIS)
 // ========================================
 
 let funcionarios = [
@@ -31,7 +94,7 @@ let diaConfigurandoFeriado = null;
 let tipoFeriadoSelecionado = null;
 
 // ========================================
-// FUNÇÕES AUXILIARES
+// FUNÇÕES AUXILIARES (MANTIDAS ORIGINAIS)
 // ========================================
 
 function formatarHoras(horas) {
@@ -116,7 +179,7 @@ function calcularPercentualEscalonado(horasExtras, percentuais) {
 }
 
 // ========================================
-// FUNÇÕES DO CALENDÁRIO
+// FUNÇÕES DO CALENDÁRIO (MANTIDAS ORIGINAIS)
 // ========================================
 
 function gerarCalendario() {
@@ -215,7 +278,7 @@ function proximoMes() {
 }
 
 // ========================================
-// FUNÇÕES DE FERIADOS
+// FUNÇÕES DE FERIADOS (MODIFICADAS PARA SALVAR)
 // ========================================
 
 function verificarFeriado(dia, mes, ano) {
@@ -277,7 +340,7 @@ function selecionarOpcaoFeriado(tipo) {
     }
 }
 
-function salvarFeriado() {
+async function salvarFeriado() {
     if (!diaConfigurandoFeriado || !tipoFeriadoSelecionado) {
         alert('Selecione uma opção primeiro!');
         return;
@@ -285,26 +348,45 @@ function salvarFeriado() {
     
     const chaveData = `${anoAtual}-${mesAtual}-${diaConfigurandoFeriado}`;
     
+    let resultado;
     if (tipoFeriadoSelecionado === 'normal') {
+        // Remover feriado
         delete feriadosCalendario[chaveData];
+        resultado = await chamarAPI('salvarFeriado', {
+            data: chaveData,
+            remover: true
+        });
     } else if (tipoFeriadoSelecionado === 'feriado') {
         const descricao = document.getElementById('inputDescricao').value || 'Feriado';
         feriadosCalendario[chaveData] = { tipo: 'feriado', descricao: descricao };
+        resultado = await chamarAPI('salvarFeriado', {
+            data: chaveData,
+            tipo: 'feriado',
+            descricao: descricao
+        });
     } else if (tipoFeriadoSelecionado === 'especial') {
         feriadosCalendario[chaveData] = { tipo: 'especial', descricao: 'Dia Especial' };
+        resultado = await chamarAPI('salvarFeriado', {
+            data: chaveData,
+            tipo: 'especial',
+            descricao: 'Dia Especial'
+        });
     }
     
-    gerarCalendario();
-    if (diaSelecionado === diaConfigurandoFeriado) {
-        calcularTodos();
+    if (resultado) {
+        gerarCalendario();
+        if (diaSelecionado === diaConfigurandoFeriado) {
+            calcularTodos();
+        }
+        fecharModal('modalFeriado');
+        alert('Configuração do dia salva com sucesso!');
+    } else {
+        alert('Erro ao salvar configuração!');
     }
-    
-    fecharModal('modalFeriado');
-    alert('Configuração do dia salva com sucesso!');
 }
 
 // ========================================
-// FUNÇÕES DE FUNCIONÁRIOS
+// FUNÇÕES DE FUNCIONÁRIOS (MANTIDAS ORIGINAIS)
 // ========================================
 
 function abrirModalFuncionarios() {
@@ -402,7 +484,7 @@ function removerFuncionario(index) {
 }
 
 // ========================================
-// FUNÇÕES DE CONFIGURAÇÃO
+// FUNÇÕES DE CONFIGURAÇÃO (MODIFICADAS PARA SALVAR)
 // ========================================
 
 function abrirModal(funcionarioIndex) {
@@ -440,10 +522,11 @@ function calcularTotalSemanal() {
     document.getElementById('totalSemanal').textContent = total.toFixed(1);
 }
 
-function salvarConfiguracao() {
+async function salvarConfiguracao() {
     if (funcionarioAtual === null) return;
 
-    configFuncionarios[funcionarioAtual] = {
+    const config = {
+        nome: funcionarios[funcionarioAtual],
         salario: parseFloat(document.getElementById('configSalario').value),
         percentual1: parseFloat(document.getElementById('percentual1').value),
         percentual2: parseFloat(document.getElementById('percentual2').value),
@@ -461,10 +544,20 @@ function salvarConfiguracao() {
         jornadaDescanso: parseFloat(document.getElementById('jornadaDescanso').value)
     };
 
-    atualizarVisualConfigurados();
-    calcularTodos();
-    fecharModal('modalConfig');
-    alert('Configuração salva com sucesso!');
+    const resultado = await chamarAPI('salvarConfig', {
+        funcionarioId: funcionarioAtual,
+        config: config
+    });
+
+    if (resultado) {
+        configFuncionarios[funcionarioAtual] = config;
+        atualizarVisualConfigurados();
+        calcularTodos();
+        fecharModal('modalConfig');
+        alert('Configuração salva com sucesso!');
+    } else {
+        alert('Erro ao salvar configuração!');
+    }
 }
 
 function atualizarVisualConfigurados() {
@@ -481,10 +574,10 @@ function atualizarVisualConfigurados() {
 }
 
 // ========================================
-// FUNÇÕES DE DADOS
+// FUNÇÕES DE DADOS (MODIFICADAS PARA SALVAR)
 // ========================================
 
-function salvarDia() {
+async function salvarDia() {
     if (!diaSelecionado) {
         alert('Selecione um dia primeiro!');
         return;
@@ -502,19 +595,33 @@ function salvarDia() {
         };
     });
 
-    dadosSalvos[chaveData] = dados;
-    gerarCalendario();
-    selecionarDia(diaSelecionado);
-    alert('Dados salvos com sucesso!');
+    const resultado = await chamarAPI('salvarDia', {
+        chaveData: chaveData,
+        dados: dados
+    });
+
+    if (resultado) {
+        dadosSalvos[chaveData] = dados;
+        gerarCalendario();
+        selecionarDia(diaSelecionado);
+        alert('Dados salvos com sucesso!');
+    } else {
+        alert('Erro ao salvar dados! Verifique sua conexão.');
+    }
 }
 
-function carregarDadosDia() {
+async function carregarDadosDia() {
     if (!diaSelecionado) return;
 
     const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
-    const dados = dadosSalvos[chaveData];
+    
+    const resultado = await chamarAPI('carregarDia', {
+        chaveData: chaveData
+    });
 
-    if (dados) {
+    if (resultado && resultado.dados) {
+        const dados = resultado.dados;
+        dadosSalvos[chaveData] = dados; // Manter em memória também
         funcionarios.forEach((_, i) => {
             const d = dados[i] || {};
             document.getElementById(`entrada-${i}`).value = d.entrada || '';
@@ -538,7 +645,7 @@ function limparFormulario() {
     calcularTodos();
 }
 
-function limparDia() {
+async function limparDia() {
     if (!diaSelecionado) {
         alert('Selecione um dia primeiro!');
         return;
@@ -546,16 +653,27 @@ function limparDia() {
 
     if (confirm('Tem certeza que deseja limpar os dados deste dia?')) {
         const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
-        delete dadosSalvos[chaveData];
-        limparFormulario();
-        gerarCalendario();
-        selecionarDia(diaSelecionado);
-        alert('Dados do dia limpos com sucesso!');
+        
+        // Limpar do Google Sheets
+        const resultado = await chamarAPI('salvarDia', {
+            chaveData: chaveData,
+            dados: {}
+        });
+
+        if (resultado) {
+            delete dadosSalvos[chaveData];
+            limparFormulario();
+            gerarCalendario();
+            selecionarDia(diaSelecionado);
+            alert('Dados do dia limpos com sucesso!');
+        } else {
+            alert('Erro ao limpar dados!');
+        }
     }
 }
 
 // ========================================
-// FUNÇÕES DE TABELAS
+// FUNÇÕES DE TABELAS (MANTIDAS ORIGINAIS)
 // ========================================
 
 function criarTabelas() {
@@ -608,7 +726,7 @@ function criarTabelas() {
 }
 
 // ========================================
-// FUNÇÃO PRINCIPAL DE CÁLCULO
+// FUNÇÃO PRINCIPAL DE CÁLCULO (MANTIDA ORIGINAL)
 // ========================================
 
 function calcularFuncionario(i) {
@@ -723,7 +841,7 @@ function calcularTodos() {
 }
 
 // ========================================
-// FUNÇÕES DE MODAL
+// FUNÇÕES DE MODAL (MANTIDAS ORIGINAIS)
 // ========================================
 
 function fecharModal(modalId) {
@@ -739,10 +857,12 @@ function fecharModal(modalId) {
 }
 
 // ========================================
-// EVENT LISTENERS E INICIALIZAÇÃO
+// EVENT LISTENERS E INICIALIZAÇÃO (MODIFICADA)
 // ========================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Iniciando sistema...');
+    
     // Event listeners para cálculo do total semanal
     ['jornadaSeg', 'jornadaTer', 'jornadaQua', 'jornadaQui', 'jornadaSex', 'jornadaSab', 'jornadaDom', 'jornadaDescanso'].forEach(id => {
         const input = document.getElementById(id);
@@ -753,7 +873,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Inicialização do sistema
     criarTabelas();
-    gerarCalendario();
+    
+    // Carregar dados salvos do Google Sheets
+    carregarDadosIniciais();
+    
+    console.log('✅ Sistema inicializado!');
 });
 
 // Event listener para fechar modais clicando fora
@@ -761,4 +885,49 @@ window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
         event.target.style.display = 'none';
     }
+}
+
+// ========================================
+// FUNÇÕES EXTRAS PARA MONITORAMENTO
+// ========================================
+
+// Função para testar a conexão com a API
+async function testarConexao() {
+    console.log('🔗 Testando conexão...');
+    try {
+        const response = await fetch(API_URL);
+        const resultado = await response.json();
+        console.log('✅ Conexão OK:', resultado);
+        return true;
+    } catch (error) {
+        console.error('❌ Erro de conexão:', error);
+        return false;
+    }
+}
+
+// Função para debug - ver dados salvos
+function verDadosSalvos() {
+    console.log('📊 Dados em memória:');
+    console.log('Dados salvos:', dadosSalvos);
+    console.log('Configurações:', configFuncionarios);
+    console.log('Feriados:', feriadosCalendario);
+}
+
+// Auto-save quando digitar (opcional)
+function configurarAutoSave() {
+    funcionarios.forEach((_, i) => {
+        ['entrada', 'iniInt', 'fimInt', 'saida'].forEach(campo => {
+            const elemento = document.getElementById(`${campo}-${i}`);
+            if (elemento) {
+                elemento.addEventListener('blur', () => {
+                    // Auto-salvar após 2 segundos de inatividade
+                    setTimeout(() => {
+                        if (diaSelecionado) {
+                            salvarDia();
+                        }
+                    }, 2000);
+                });
+            }
+        });
+    });
 }
