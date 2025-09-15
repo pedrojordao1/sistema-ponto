@@ -4,19 +4,21 @@
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcjtfRf5szJCRCcBHtTjMzrFzg2c2ZNvIzVvkGWswFQ01n0GB7x3pUMbLY8pms4hSb/exec';
 
-// Função para fazer requisições à API
+// Função para fazer requisições à API (versão sem CORS)
 async function chamarAPI(action, dados = {}) {
     try {
         console.log('Chamando API:', action);
+        
+        // Criar formulário para evitar CORS
+        const form = new FormData();
+        form.append('data', JSON.stringify({
+            action: action,
+            ...dados
+        }));
+        
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: action,
-                ...dados
-            })
+            body: form
         });
         
         const resultado = await response.json();
