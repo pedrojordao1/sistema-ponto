@@ -252,7 +252,11 @@ function selecionarDia(dia) {
     diaSelecionado = dia;
     document.getElementById('diaAtual').textContent = `${dia}/${mesAtual + 1}/${anoAtual}`;
     
-    carregarDadosDia();
+    // APENAS carregar dados se não estiver em processo de salvamento
+    // Para evitar que carregue e limpe após salvar
+    setTimeout(() => {
+        carregarDadosDia();
+    }, 100); // Pequeno delay para evitar conflito com salvamento
 }
 
 function mesAnterior() {
@@ -604,9 +608,9 @@ async function salvarDia() {
     });
 
     if (resultado) {
-        dadosSalvos[chaveData] = dados;
+        dadosSalvos[chaveData] = dados; // Manter dados localmente
         gerarCalendario();
-        selecionarDia(diaSelecionado);
+        // NÃO chamar selecionarDia aqui para evitar recarregamento
         alert('Dados salvos no Google Sheets!');
     } else {
         alert('Erro ao salvar dados! Verifique sua conexão.');
