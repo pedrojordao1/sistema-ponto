@@ -608,9 +608,15 @@ async function salvarDia() {
     });
 
     if (resultado) {
-        dadosSalvos[chaveData] = dados; // Manter dados localmente
+        // Salvar dados localmente para manter na interface
+        dadosSalvos[chaveData] = dados;
+        
+        // Atualizar calendário para mostrar que tem dados
         gerarCalendario();
-        // NÃO chamar selecionarDia aqui para evitar recarregamento
+        
+        // IMPORTANTE: NÃO chamar selecionarDia() aqui
+        // Isso evita o recarregamento automático que limpa os dados
+        
         alert('Dados salvos no Google Sheets!');
     } else {
         alert('Erro ao salvar dados! Verifique sua conexão.');
