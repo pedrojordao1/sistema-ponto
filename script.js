@@ -92,9 +92,17 @@ let feriadosCalendario = {};
 let diaConfigurandoFeriado = null;
 let tipoFeriadoSelecionado = null;
 
+// Variável para controlar quando pular o carregamento
+let saltarCarregamento = false;
+
 // ========================================
 // FUNÇÕES AUXILIARES
 // ========================================
+
+// Função para padronizar formato de datas
+function formatarChaveData(ano, mes, dia) {
+    return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
 
 function formatarHoras(horas) {
     const h = Math.floor(horas);
@@ -177,6 +185,23 @@ function calcularPercentualEscalonado(horasExtras, percentuais) {
     return valorTotal;
 }
 
+// Função de debug melhorada
+function debugChaves() {
+    console.log('=== DEBUG COMPLETO ===');
+    console.log('Dados salvos localmente:', Object.keys(dadosSalvos));
+    console.log('Feriados do calendário:', Object.keys(feriadosCalendario));
+    
+    if (diaSelecionado) {
+        const chaveNova = formatarChaveData(anoAtual, mesAtual, diaSelecionado);
+        const chaveAntiga = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+        console.log('Dia selecionado:', diaSelecionado);
+        console.log('Chave nova:', chaveNova);
+        console.log('Chave antiga:', chaveAntiga);
+        console.log('Dados na chave nova:', dadosSalvos[chaveNova]);
+        console.log('Dados na chave antiga:', dadosSalvos[chaveAntiga]);
+    }
+}
+
 // ========================================
 // FUNÇÕES DO CALENDÁRIO
 // ========================================
@@ -214,8 +239,16 @@ function gerarCalendario() {
         div.onclick = () => selecionarDia(dia);
         div.oncontextmenu = (event) => abrirModalFeriado(dia, event);
         
-        const chaveData = `${anoAtual}-${mesAtual}-${dia}`;
-        if (dadosSalvos[chaveData]) {
+        // CORREÇÃO: usar formato padronizado e busca flexível
+        const chaveData = formatarChaveData(anoAtual, mesAtual, dia);
+        const chaveAntiga = `${anoAtual}-${mesAtual}-${dia}`;
+        
+        // Verificar se tem dados (buscar por chaves que começam com a data)
+        const temDados = Object.keys(dadosSalvos).some(chave => 
+            chave.startsWith(chaveData) || chave === chaveAntiga
+        );
+        
+        if (temDados) {
             div.classList.add('com-dados');
         }
         
@@ -241,9 +274,6 @@ function gerarCalendario() {
                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     document.getElementById('mesAno').textContent = `${meses[mesAtual]} ${anoAtual}`;
 }
-
-// Variável para controlar quando pular o carregamento
-let saltarCarregamento = false;
 
 function selecionarDia(dia) {
     console.log('Selecionando dia:', dia);
@@ -293,15 +323,18 @@ function proximoMes() {
 // ========================================
 
 function verificarFeriado(dia, mes, ano) {
-    const chaveData = `${ano}-${mes}-${dia}`;
+    const chaveData = formatarChaveData(ano, mes, dia);
     const chaveDiaMes = String(mes + 1).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
     
     if (feriadosGlobais[chaveDiaMes]) {
         return { tipo: 'global', descricao: feriadosGlobais[chaveDiaMes] };
     }
     
-    if (feriadosCalendario[chaveData]) {
-        return { tipo: 'calendario', descricao: feriadosCalendario[chaveData].descricao };
+    // Buscar tanto formato novo quanto antigo
+    const chaveAntiga = `${ano}-${mes}-${dia}`;
+    if (feriadosCalendario[chaveData] || feriadosCalendario[chaveAntiga]) {
+        const feriado = feriadosCalendario[chaveData] || feriadosCalendario[chaveAntiga];
+        return { tipo: 'calendario', descricao: feriado.descricao };
     }
     
     return null;
@@ -357,7 +390,7 @@ async function salvarFeriado() {
         return;
     }
     
-    const chaveData = `${anoAtual}-${mesAtual}-${diaConfigurandoFeriado}`;
+    const chaveData = formatarChaveData(anoAtual, mesAtual, diaConfigurandoFeriado);
     
     let resultado;
     if (tipoFeriadoSelecionado === 'normal') {
@@ -595,7 +628,7 @@ async function salvarDia() {
 
     console.log('Salvando dados no Google Sheets...');
     
-    const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+    const chaveData = formatarChaveData(anoAtual, mesAtual, diaSelecionado);
     const dados = {};
 
     funcionarios.forEach((_, i) => {
@@ -613,18 +646,10 @@ async function salvarDia() {
     });
 
     if (resultado) {
-        // Marcar para pular próximo carregamento
         saltarCarregamento = true;
-        
-        // Salvar dados localmente
         dadosSalvos[chaveData] = dados;
-        
-        // Atualizar calendário
         gerarCalendario();
-        
-        // Reselecionar dia (mas sem carregar por causa da flag)
         selecionarDia(diaSelecionado);
-        
         alert('Dados salvos no Google Sheets!');
     } else {
         alert('Erro ao salvar dados! Verifique sua conexão.');
@@ -634,13 +659,29 @@ async function salvarDia() {
 async function carregarDadosDia() {
     if (!diaSelecionado) return;
 
-    const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
-    console.log('Carregando dados para:', chaveData);
+    const chaveData = formatarChaveData(anoAtual, mesAtual, diaSelecionado);
+    const chaveLocal = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+    
+    console.log('=== DEBUG FORMATO CHAVES ===');
+    console.log('Chave que estamos procurando:', chaveData);
+    console.log('Chave local alternativa:', chaveLocal);
     
     // PRIMEIRO: verificar dados locais (salvos na sessão)
-    if (dadosSalvos[chaveData]) {
+    let dados = dadosSalvos[chaveLocal] || dadosSalvos[chaveData];
+    
+    // Buscar por qualquer chave que comece com a data
+    if (!dados) {
+        const chaveEncontrada = Object.keys(dadosSalvos).find(chave => 
+            chave.startsWith(chaveData) || chave.startsWith(chaveLocal)
+        );
+        if (chaveEncontrada) {
+            dados = dadosSalvos[chaveEncontrada];
+            console.log('Dados encontrados localmente com chave:', chaveEncontrada);
+        }
+    }
+    
+    if (dados) {
         console.log('Usando dados locais salvos');
-        const dados = dadosSalvos[chaveData];
         funcionarios.forEach((_, i) => {
             const d = dados[i] || {};
             document.getElementById(`entrada-${i}`).value = d.entrada || '';
@@ -649,7 +690,7 @@ async function carregarDadosDia() {
             document.getElementById(`saida-${i}`).value = d.saida || '';
         });
         calcularTodos();
-        return; // Parar aqui, não tentar carregar do Google Sheets
+        return;
     }
     
     // SEGUNDO: se não tem dados locais, tentar Google Sheets
@@ -658,9 +699,14 @@ async function carregarDadosDia() {
         chaveData: chaveData
     });
 
+    console.log('Resultado do Google Sheets:', resultado);
+    if (resultado && resultado.debug) {
+        console.log('Chaves encontradas na planilha:', resultado.debug.chavesEncontradas);
+    }
+
     if (resultado && resultado.dados) {
         console.log('Dados encontrados no Google Sheets');
-        const dados = resultado.dados;
+        dados = resultado.dados;
         dadosSalvos[chaveData] = dados; // Salvar localmente também
         funcionarios.forEach((_, i) => {
             const d = dados[i] || {};
@@ -693,7 +739,7 @@ async function limparDia() {
     }
 
     if (confirm('Tem certeza que deseja limpar os dados deste dia?')) {
-        const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+        const chaveData = formatarChaveData(anoAtual, mesAtual, diaSelecionado);
         
         const resultado = await chamarAPI('salvarDia', {
             chaveData: chaveData,
@@ -702,6 +748,10 @@ async function limparDia() {
 
         if (resultado) {
             delete dadosSalvos[chaveData];
+            // Limpar também formato antigo se existir
+            const chaveAntiga = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+            delete dadosSalvos[chaveAntiga];
+            
             limparFormulario();
             gerarCalendario();
             selecionarDia(diaSelecionado);
@@ -921,3 +971,6 @@ window.onclick = function(event) {
         event.target.style.display = 'none';
     }
 }
+
+// Adicionar função de debug no window para acesso via console
+window.debugChaves = debugChaves;
