@@ -1,0 +1,529 @@
+/* Reset e base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    padding: 10px;
+}
+
+/* Layout principal */
+.sistema {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Cabeçalho */
+.cabecalho {
+    background: #2c3e50;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Controles do calendário */
+.calendario-controle {
+    background: #3498db;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.calendario-nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-nav {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-nav:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.mes-ano {
+    font-size: 18px;
+    font-weight: bold;
+    min-width: 200px;
+    text-align: center;
+}
+
+.dia-atual {
+    background: rgba(255,255,255,0.2);
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* Informações */
+.info-feriados {
+    background: #e8f4fd;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 20px;
+    font-size: 13px;
+    color: #2c3e50;
+}
+
+/* Calendário */
+.calendario {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #bdc3c7;
+    margin: 20px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.dia-semana {
+    background: #34495e;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.dia {
+    background: white;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.dia:hover {
+    background: #ecf0f1;
+}
+
+.dia.outro-mes {
+    background: #f8f9fa;
+    color: #95a5a6;
+}
+
+.dia.selecionado {
+    background: #3498db;
+    color: white;
+    font-weight: bold;
+}
+
+.dia.com-dados {
+    background: #d5f4e6;
+    font-weight: bold;
+}
+
+.dia.com-dados.selecionado {
+    background: #27ae60;
+    color: white;
+}
+
+.dia.feriado {
+    background: #e74c3c;
+    color: white;
+    font-weight: bold;
+}
+
+.dia.feriado:hover {
+    background: #c0392b;
+}
+
+.dia.feriado.selecionado {
+    background: #a93226;
+}
+
+/* Botões principais */
+.botoes {
+    background: #ecf0f1;
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #bdc3c7;
+}
+
+.botao {
+    padding: 8px 16px;
+    margin: 0 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.botao-salvar {
+    background: #27ae60;
+    color: white;
+}
+
+.botao-limpar {
+    background: #e74c3c;
+    color: white;
+}
+
+.botao-funcionarios {
+    background: #9b59b6;
+    color: white;
+}
+
+/* Seções */
+.secao {
+    margin: 20px;
+}
+
+.titulo-secao {
+    background: #34495e;
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 4px 4px 0 0;
+}
+
+.titulo-secao.azul {
+    background: #3498db;
+}
+
+.titulo-secao.laranja {
+    background: #e67e22;
+}
+
+/* Tabelas */
+.container-tabela {
+    overflow-x: auto;
+    border: 1px solid #bdc3c7;
+    border-top: none;
+}
+
+.tabela {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.tabela th,
+.tabela td {
+    border: 1px solid #bdc3c7;
+    padding: 8px;
+    text-align: center;
+}
+
+.tabela th {
+    background: #34495e;
+    color: white;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.nome-funcionario {
+    background: #ecf0f1;
+    font-weight: bold;
+    text-align: left;
+    padding-left: 10px;
+    width: 120px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.nome-funcionario:hover {
+    background-color: #d5dbdb !important;
+}
+
+.funcionario-configurado::after {
+    content: "⚙️";
+    position: absolute;
+    right: 5px;
+    font-size: 12px;
+}
+
+.campo-hora {
+    width: 80px;
+    padding: 4px;
+    border: 1px solid #95a5a6;
+    border-radius: 3px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.resultado {
+    background: #d5f4e6;
+    font-weight: bold;
+    min-width: 70px;
+}
+
+.resultado-valor {
+    background: #fef5e7;
+    font-weight: bold;
+    min-width: 80px;
+}
+
+/* Modais */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-conteudo {
+    background-color: white;
+    margin: 2% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-pequeno {
+    max-width: 450px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #3498db;
+}
+
+.modal-title {
+    color: #2c3e50;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.fechar-modal {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #e74c3c;
+}
+
+/* Configurações do modal */
+.config-grupo {
+    margin-bottom: 20px;
+}
+
+.config-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #2c3e50;
+}
+
+.config-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Percentuais de horas extras */
+.percentuais-extras {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.percentual-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+.percentual-item label {
+    font-size: 11px;
+    color: #34495e;
+    font-weight: bold;
+    text-align: center;
+}
+
+.percentual-item input {
+    width: 60px;
+    padding: 4px;
+    text-align: center;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+}
+
+.percentual-item span {
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+/* Jornada semanal */
+.jornada-semana {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.dia-config {
+    text-align: center;
+}
+
+.dia-config label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 3px;
+    color: #34495e;
+}
+
+.dia-config input {
+    width: 60px;
+    padding: 4px;
+    text-align: center;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+}
+
+/* Botões do modal */
+.modal-botoes {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #ecf0f1;
+}
+
+.btn-modal {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-salvar {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-cancelar {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-remover {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.btn-remover:hover {
+    background: #c0392b;
+}
+
+/* Opções de feriado */
+.opcoes-feriado {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.opcao-feriado {
+    padding: 15px;
+    border: 2px solid #ecf0f1;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.opcao-feriado:hover {
+    border-color: #3498db;
+    background: #f8f9fa;
+}
+
+.opcao-feriado.selecionada {
+    border-color: #27ae60;
+    background: #d5f4e6;
+}
+
+.opcao-feriado strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #2c3e50;
+}
+
+.opcao-feriado small {
+    color: #7f8c8d;
+}
+
+/* Lista de funcionários */
+.lista-funcionarios {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ecf0f1;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.item-funcionario {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+.nome-funcionario-lista {
+    font-weight: bold;
+    color: #2c3e50;
+    flex: 1;
+}
+
+.funcionario-configurado-lista {
+    color: #27ae60;
+    font-size: 12px;
+    margin-left: 10px;
+}
