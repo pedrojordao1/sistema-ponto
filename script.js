@@ -1,5 +1,5 @@
 // ========================================
-// CONFIGURAÇÃO DA API GOOGLE SHEETS - ATUALIZADA
+// CONFIGURAÇÃO DA API GOOGLE SHEETS
 // ========================================
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbwP2YnlqiBuVWXxm-n4CS69fi6t-khfrfmoK005aFgXnmuYCZ7XF53WcdExF2bqG_lEiQ/exec';
@@ -7,7 +7,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwP2YnlqiBuVWXxm-n4CS69
 // Função para fazer requisições à API
 async function chamarAPI(action, dados = {}) {
     try {
-        console.log('🔄 Chamando API:', action);
+        console.log('Chamando API:', action);
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
@@ -21,243 +21,41 @@ async function chamarAPI(action, dados = {}) {
         
         const resultado = await response.json();
         if (!resultado.success) {
-            console.error('❌ Erro da API:', resultado.error);
+            console.error('Erro da API:', resultado.error);
             return null;
         }
-        console.log('✅ API sucesso:', action);
+        console.log('API sucesso:', action);
         return resultado;
     } catch (error) {
-        console.error('❌ Erro de conexão:', error);
+        console.error('Erro de conexão:', error);
         return null;
     }
 }
 
 // Carregar dados na inicialização
 async function carregarDadosIniciais() {
-    console.log('🔄 Carregando dados salvos do Google Sheets...');
+    console.log('Carregando dados salvos do Google Sheets...');
     
     try {
-        // Carregar configurações dos funcionários
         const configsResult = await chamarAPI('carregarConfigs');
         if (configsResult && configsResult.configs) {
             configFuncionarios = configsResult.configs;
-            console.log('✅ Configurações carregadas:', Object.keys(configFuncionarios).length);
+            console.log('Configurações carregadas:', Object.keys(configFuncionarios).length);
             atualizarVisualConfigurados();
-}
-
-// ========================================
-// FUNÇÃO PRINCIPAL DE CÁLCULO
-// ========================================
-
-function calcularFuncionario(i) {
-    const entrada = converterHora(document.getElementById(`entrada-${i}`).value);
-    const iniInt = converterHora(document.getElementById(`iniInt-${i}`).value);
-    const fimInt = converterHora(document.getElementById(`fimInt-${i}`).value);
-    const saida = converterHora(document.getElementById(`saida-${i}`).value);
-
-    if (!entrada.h && !saida.h) {
-        document.getElementById(`totalReal-${i}`).textContent = '0h00';
-        document.getElementById(`horasTrab-${i}`).textContent = '0h00';
-        document.getElementById(`horasDiur-${i}`).textContent = '0h00';
-        document.getElementById(`horasNot-${i}`).textContent = '0h00';
-        document.getElementById(`horasExt-${i}`).textContent = '0h00';
-        document.getElementById(`valorExt-${i}`).textContent = 'R$ 0,00';
-        document.getElementById(`valorNot-${i}`).textContent = 'R$ 0,00';
-        document.getElementById(`valorTot-${i}`).textContent = 'R$ 0,00';
-        return;
-    }
-
-    const config = obterConfigFuncionario(i);
-    let jornadaDoDia;
-    let ehFeriado = false;
-
-    if (diaSelecionado) {
-        const dataAtual = new Date(anoAtual, mesAtual, diaSelecionado);
-        const diaSemana = dataAtual.getDay();
-        jornadaDoDia = obterJornadaDoDia(i, diaSemana);
-
-        const feriado = verificarFeriado(diaSelecionado, mesAtual, anoAtual);
-        if (feriado) {
-            ehFeriado = true;
-            jornadaDoDia = config.jornadaDescanso;
-        }
-
-        if (dataAtual.getDay() === 0 && jornadaDoDia > 0) {
-            const primeiroDomingo = new Date(anoAtual, mesAtual, 1);
-            while (primeiroDomingo.getDay() !== 0) {
-                primeiroDomingo.setDate(primeiroDomingo.getDate() + 1);
-            }
-            
-            const quartoDomingo = new Date(primeiroDomingo);
-            quartoDomingo.setDate(primeiroDomingo.getDate() + 21);
-            
-            if (diaSelecionado === quartoDomingo.getDate() && 
-                quartoDomingo.getMonth() === mesAtual) {
-                ehFeriado = true;
-                jornadaDoDia = config.jornadaDescanso;
-            }
-        }
-    } else {
-        jornadaDoDia = 8;
-    }
-
-    let totalMinutos = (saida.h * 60 + saida.m) - (entrada.h * 60 + entrada.m);
-    if (iniInt.h && fimInt.h && fimInt.h >= iniInt.h) {
-        totalMinutos -= (fimInt.h * 60 + fimInt.m) - (iniInt.h * 60 + iniInt.m);
-    }
-    const totalReal = totalMinutos / 60;
-
-    let minutosNoturnoReais = 0;
-    
-    if (entrada.h < 5) {
-        minutosNoturnoReais += Math.max(0, Math.min(saida.h * 60 + saida.m, 5 * 60) - (entrada.h * 60 + entrada.m));
-    }
-    
-    if (saida.h >= 22) {
-        minutosNoturnoReais += Math.max(0, (saida.h * 60 + saida.m) - Math.max(entrada.h * 60 + entrada.m, 22 * 60));
-    }
-    
-    if (iniInt.h && fimInt.h) {
-        if ((iniInt.h < 5 && fimInt.h <= 5) || (iniInt.h >= 22 && fimInt.h >= 22)) {
-            minutosNoturnoReais -= (fimInt.h * 60 + fimInt.m) - (iniInt.h * 60 + iniInt.m);
-        }
-    }
-    
-    minutosNoturnoReais = Math.max(0, minutosNoturnoReais);
-
-    const horasNoturnas = minutosNoturnoReais / 52.5;
-    const horasDiurnas = totalReal - (minutosNoturnoReais / 60);
-    const horasTrabalhadas = horasDiurnas + horasNoturnas;
-
-    const horasExtras = Math.max(0, horasTrabalhadas - jornadaDoDia);
-
-    const salarioBase = config.salario;
-    const valorHoraNormal = salarioBase / 220;
-    const extrasNormais = Math.max(0, horasDiurnas - jornadaDoDia);
-
-    let valorExtras;
-    
-    if (ehFeriado) {
-        valorExtras = extrasNormais * valorHoraNormal * (1 + config.percentuais.folga / 100);
-    } else {
-        valorExtras = calcularPercentualEscalonado(extrasNormais, config.percentuais) * valorHoraNormal;
-    }
-
-    const valorNoturno = horasNoturnas * valorHoraNormal * 0.20;
-    const valorTotal = valorExtras + valorNoturno;
-
-    document.getElementById(`totalReal-${i}`).textContent = formatarHoras(totalReal);
-    document.getElementById(`horasTrab-${i}`).textContent = formatarHoras(horasTrabalhadas);
-    document.getElementById(`horasDiur-${i}`).textContent = formatarHoras(horasDiurnas);
-    document.getElementById(`horasNot-${i}`).textContent = formatarHoras(horasNoturnas);
-    document.getElementById(`horasExt-${i}`).textContent = formatarHoras(horasExtras);
-    document.getElementById(`valorExt-${i}`).textContent = 'R$ ' + valorExtras.toFixed(2);
-    document.getElementById(`valorNot-${i}`).textContent = 'R$ ' + valorNoturno.toFixed(2);
-    document.getElementById(`valorTot-${i}`).textContent = 'R$ ' + valorTotal.toFixed(2);
-}
-
-function calcularTodos() {
-    funcionarios.forEach((_, i) => calcularFuncionario(i));
-}
-
-// ========================================
-// FUNÇÕES DE MODAL
-// ========================================
-
-function fecharModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
-    if (modalId === 'modalConfig') {
-        funcionarioAtual = null;
-    } else if (modalId === 'modalFeriado') {
-        diaConfigurandoFeriado = null;
-        tipoFeriadoSelecionado = null;
-    } else if (modalId === 'modalFuncionarios') {
-        document.getElementById('novoFuncionario').value = '';
-    }
-}
-
-// ========================================
-// EVENT LISTENERS E INICIALIZAÇÃO
-// ========================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Iniciando sistema completo...');
-    
-    // Event listeners para cálculo do total semanal
-    ['jornadaSeg', 'jornadaTer', 'jornadaQua', 'jornadaQui', 'jornadaSex', 'jornadaSab', 'jornadaDom', 'jornadaDescanso'].forEach(id => {
-        const input = document.getElementById(id);
-        if (input) {
-            input.addEventListener('input', calcularTotalSemanal);
-        }
-    });
-
-    // Inicialização do sistema
-    criarTabelas();
-    
-    // Carregar dados salvos do Google Sheets
-    carregarDadosIniciais();
-    
-    console.log('✅ Sistema inicializado com Google Sheets!');
-});
-
-// Event listener para fechar modais clicando fora
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-}
-
-// ========================================
-// FUNÇÕES EXTRAS PARA MONITORAMENTO
-// ========================================
-
-// Função para testar a conexão com a API
-async function testarConexao() {
-    console.log('🔗 Testando conexão com Google Sheets...');
-    try {
-        const response = await fetch(API_URL);
-        const resultado = await response.json();
-        console.log('✅ Conexão OK:', resultado);
-        return true;
-    } catch (error) {
-        console.error('❌ Erro de conexão:', error);
-        return false;
-    }
-}
-
-// Função para debug - ver dados salvos
-function verDadosSalvos() {
-    console.log('📊 Dados em memória:');
-    console.log('Dados salvos:', dadosSalvos);
-    console.log('Configurações:', configFuncionarios);
-    console.log('Feriados:', feriadosCalendario);
-}
-
-// Mostrar status da conexão
-function mostrarStatus() {
-    console.log('📡 Status do Sistema:');
-    console.log('API URL:', API_URL);
-    console.log('Funcionários:', funcionarios.length);
-    console.log('Configs salvas:', Object.keys(configFuncionarios).length);
-    console.log('Dias com dados:', Object.keys(dadosSalvos).length);
-    console.log('Feriados configurados:', Object.keys(feriadosCalendario).length);
-}VisualConfigurados();
         }
         
-        // Carregar feriados
         const feriadosResult = await chamarAPI('carregarFeriados');
         if (feriadosResult && feriadosResult.feriados) {
             feriadosCalendario = feriadosResult.feriados;
-            console.log('✅ Feriados carregados:', Object.keys(feriadosCalendario).length);
+            console.log('Feriados carregados:', Object.keys(feriadosCalendario).length);
         }
         
-        console.log('✅ Todos os dados carregados do Google Sheets!');
+        console.log('Todos os dados carregados do Google Sheets!');
     } catch (error) {
-        console.error('❌ Erro ao carregar dados:', error);
-        console.log('⚠️ Continuando sem dados salvos...');
+        console.error('Erro ao carregar dados:', error);
+        console.log('Continuando sem dados salvos...');
     }
     
-    // Gerar calendário após carregar dados
     gerarCalendario();
 }
 
@@ -272,14 +70,13 @@ let funcionarios = [
     'Roberto Alves', 'Vinicius Santos'
 ];
 
-let mesAtual = 8; // Setembro (0-11)
+let mesAtual = 8;
 let anoAtual = 2025;
 let diaSelecionado = null;
 let dadosSalvos = {};
 let configFuncionarios = {};
 let funcionarioAtual = null;
 
-// Feriados
 let feriadosGlobais = {
     '01-01': 'Confraternização Universal',
     '04-21': 'Tiradentes', 
@@ -444,7 +241,7 @@ function gerarCalendario() {
 }
 
 function selecionarDia(dia) {
-    console.log('📅 Selecionando dia:', dia);
+    console.log('Selecionando dia:', dia);
     
     document.querySelectorAll('.dia.selecionado').forEach(d => d.classList.remove('selecionado'));
     const dias = document.querySelectorAll('.dia:not(.outro-mes)');
@@ -453,7 +250,6 @@ function selecionarDia(dia) {
     diaSelecionado = dia;
     document.getElementById('diaAtual').textContent = `${dia}/${mesAtual + 1}/${anoAtual}`;
     
-    // Carregar dados salvos do Google Sheets
     carregarDadosDia();
 }
 
@@ -582,9 +378,9 @@ async function salvarFeriado() {
             calcularTodos();
         }
         fecharModal('modalFeriado');
-        alert('✅ Configuração do dia salva no Google Sheets!');
+        alert('Configuração do dia salva no Google Sheets!');
     } else {
-        alert('❌ Erro ao salvar configuração!');
+        alert('Erro ao salvar configuração!');
     }
 }
 
@@ -638,7 +434,7 @@ function adicionarFuncionario() {
         carregarDadosDia();
     }
 
-    alert(`✅ Funcionário "${nome}" adicionado com sucesso!`);
+    alert(`Funcionário "${nome}" adicionado com sucesso!`);
 }
 
 function removerFuncionario(index) {
@@ -682,7 +478,7 @@ function removerFuncionario(index) {
             carregarDadosDia();
         }
 
-        alert(`✅ Funcionário "${nome}" removido com sucesso!`);
+        alert(`Funcionário "${nome}" removido com sucesso!`);
     }
 }
 
@@ -717,3 +513,375 @@ function calcularTotalSemanal() {
         parseFloat(document.getElementById('jornadaSeg').value || 0) +
         parseFloat(document.getElementById('jornadaTer').value || 0) +
         parseFloat(document.getElementById('jornadaQua').value || 0) +
+        parseFloat(document.getElementById('jornadaQui').value || 0) +
+        parseFloat(document.getElementById('jornadaSex').value || 0) +
+        parseFloat(document.getElementById('jornadaSab').value || 0) +
+        parseFloat(document.getElementById('jornadaDom').value || 0);
+    
+    document.getElementById('totalSemanal').textContent = total.toFixed(1);
+}
+
+async function salvarConfiguracao() {
+    if (funcionarioAtual === null) return;
+
+    const config = {
+        nome: funcionarios[funcionarioAtual],
+        salario: parseFloat(document.getElementById('configSalario').value),
+        percentual1: parseFloat(document.getElementById('percentual1').value),
+        percentual2: parseFloat(document.getElementById('percentual2').value),
+        percentual3: parseFloat(document.getElementById('percentual3').value),
+        percentual4: parseFloat(document.getElementById('percentual4').value),
+        percentual5: parseFloat(document.getElementById('percentual5').value),
+        percentualFolga: parseFloat(document.getElementById('percentualFolga').value),
+        jornadaSeg: parseFloat(document.getElementById('jornadaSeg').value),
+        jornadaTer: parseFloat(document.getElementById('jornadaTer').value),
+        jornadaQua: parseFloat(document.getElementById('jornadaQua').value),
+        jornadaQui: parseFloat(document.getElementById('jornadaQui').value),
+        jornadaSex: parseFloat(document.getElementById('jornadaSex').value),
+        jornadaSab: parseFloat(document.getElementById('jornadaSab').value),
+        jornadaDom: parseFloat(document.getElementById('jornadaDom').value),
+        jornadaDescanso: parseFloat(document.getElementById('jornadaDescanso').value)
+    };
+
+    const resultado = await chamarAPI('salvarConfig', {
+        funcionarioId: funcionarioAtual,
+        config: config
+    });
+
+    if (resultado) {
+        configFuncionarios[funcionarioAtual] = config;
+        atualizarVisualConfigurados();
+        calcularTodos();
+        fecharModal('modalConfig');
+        alert('Configuração salva no Google Sheets!');
+    } else {
+        alert('Erro ao salvar configuração!');
+    }
+}
+
+function atualizarVisualConfigurados() {
+    funcionarios.forEach((nome, i) => {
+        const celulas = document.querySelectorAll(`[onclick*="abrirModal(${i})"]`);
+        celulas.forEach(celula => {
+            if (configFuncionarios[i]) {
+                celula.classList.add('funcionario-configurado');
+            } else {
+                celula.classList.remove('funcionario-configurado');
+            }
+        });
+    });
+}
+
+// ========================================
+// FUNÇÕES DE DADOS
+// ========================================
+
+async function salvarDia() {
+    if (!diaSelecionado) {
+        alert('Selecione um dia primeiro!');
+        return;
+    }
+
+    console.log('Salvando dados no Google Sheets...');
+    
+    const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+    const dados = {};
+
+    funcionarios.forEach((_, i) => {
+        dados[i] = {
+            entrada: document.getElementById(`entrada-${i}`).value,
+            iniInt: document.getElementById(`iniInt-${i}`).value,
+            fimInt: document.getElementById(`fimInt-${i}`).value,
+            saida: document.getElementById(`saida-${i}`).value
+        };
+    });
+
+    const resultado = await chamarAPI('salvarDia', {
+        chaveData: chaveData,
+        dados: dados
+    });
+
+    if (resultado) {
+        dadosSalvos[chaveData] = dados;
+        gerarCalendario();
+        selecionarDia(diaSelecionado);
+        alert('Dados salvos no Google Sheets!');
+    } else {
+        alert('Erro ao salvar dados! Verifique sua conexão.');
+    }
+}
+
+async function carregarDadosDia() {
+    if (!diaSelecionado) return;
+
+    console.log('Carregando dados do Google Sheets...');
+    
+    const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+    
+    const resultado = await chamarAPI('carregarDia', {
+        chaveData: chaveData
+    });
+
+    if (resultado && resultado.dados) {
+        console.log('Dados encontrados no Google Sheets');
+        const dados = resultado.dados;
+        dadosSalvos[chaveData] = dados;
+        funcionarios.forEach((_, i) => {
+            const d = dados[i] || {};
+            document.getElementById(`entrada-${i}`).value = d.entrada || '';
+            document.getElementById(`iniInt-${i}`).value = d.iniInt || '';
+            document.getElementById(`fimInt-${i}`).value = d.fimInt || '';
+            document.getElementById(`saida-${i}`).value = d.saida || '';
+        });
+        calcularTodos();
+    } else {
+        console.log('Nenhum dado encontrado para este dia');
+        limparFormulario();
+    }
+}
+
+function limparFormulario() {
+    funcionarios.forEach((_, i) => {
+        ['entrada', 'iniInt', 'fimInt', 'saida'].forEach(campo => {
+            const elemento = document.getElementById(`${campo}-${i}`);
+            if (elemento) elemento.value = '';
+        });
+    });
+    calcularTodos();
+}
+
+async function limparDia() {
+    if (!diaSelecionado) {
+        alert('Selecione um dia primeiro!');
+        return;
+    }
+
+    if (confirm('Tem certeza que deseja limpar os dados deste dia?')) {
+        const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+        
+        const resultado = await chamarAPI('salvarDia', {
+            chaveData: chaveData,
+            dados: {}
+        });
+
+        if (resultado) {
+            delete dadosSalvos[chaveData];
+            limparFormulario();
+            gerarCalendario();
+            selecionarDia(diaSelecionado);
+            alert('Dados do dia limpos no Google Sheets!');
+        } else {
+            alert('Erro ao limpar dados!');
+        }
+    }
+}
+
+// ========================================
+// FUNÇÕES DE TABELAS
+// ========================================
+
+function criarTabelas() {
+    const tabelaEntrada = document.getElementById('tabelaEntrada');
+    tabelaEntrada.innerHTML = '';
+    
+    funcionarios.forEach((nome, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="nome-funcionario" onclick="abrirModal(${i})">${nome}</td>
+            <td><input type="time" class="campo-hora" id="entrada-${i}" onchange="calcularTodos()"></td>
+            <td><input type="time" class="campo-hora" id="iniInt-${i}" onchange="calcularTodos()"></td>
+            <td><input type="time" class="campo-hora" id="fimInt-${i}" onchange="calcularTodos()"></td>
+            <td><input type="time" class="campo-hora" id="saida-${i}" onchange="calcularTodos()"></td>
+            <td class="resultado" id="totalReal-${i}">0h00</td>
+        `;
+        tabelaEntrada.appendChild(tr);
+    });
+
+    const tabelaResumo = document.getElementById('tabelaResumo');
+    tabelaResumo.innerHTML = '';
+    
+    funcionarios.forEach((nome, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="nome-funcionario" onclick="abrirModal(${i})">${nome}</td>
+            <td class="resultado" id="horasTrab-${i}">0h00</td>
+            <td class="resultado" id="horasDiur-${i}">0h00</td>
+            <td class="resultado" id="horasNot-${i}">0h00</td>
+            <td class="resultado" id="horasExt-${i}">0h00</td>
+        `;
+        tabelaResumo.appendChild(tr);
+    });
+
+    const tabelaValores = document.getElementById('tabelaValores');
+    tabelaValores.innerHTML = '';
+    
+    funcionarios.forEach((nome, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="nome-funcionario" onclick="abrirModal(${i})">${nome}</td>
+            <td class="resultado-valor" id="valorExt-${i}">R$ 0,00</td>
+            <td class="resultado-valor" id="valorNot-${i}">R$ 0,00</td>
+            <td class="resultado-valor" id="valorTot-${i}">R$ 0,00</td>
+        `;
+        tabelaValores.appendChild(tr);
+    });
+
+    atualizarVisualConfigurados();
+}
+
+// ========================================
+// FUNÇÃO PRINCIPAL DE CÁLCULO
+// ========================================
+
+function calcularFuncionario(i) {
+    const entrada = converterHora(document.getElementById(`entrada-${i}`).value);
+    const iniInt = converterHora(document.getElementById(`iniInt-${i}`).value);
+    const fimInt = converterHora(document.getElementById(`fimInt-${i}`).value);
+    const saida = converterHora(document.getElementById(`saida-${i}`).value);
+
+    if (!entrada.h && !saida.h) {
+        document.getElementById(`totalReal-${i}`).textContent = '0h00';
+        document.getElementById(`horasTrab-${i}`).textContent = '0h00';
+        document.getElementById(`horasDiur-${i}`).textContent = '0h00';
+        document.getElementById(`horasNot-${i}`).textContent = '0h00';
+        document.getElementById(`horasExt-${i}`).textContent = '0h00';
+        document.getElementById(`valorExt-${i}`).textContent = 'R$ 0,00';
+        document.getElementById(`valorNot-${i}`).textContent = 'R$ 0,00';
+        document.getElementById(`valorTot-${i}`).textContent = 'R$ 0,00';
+        return;
+    }
+
+    const config = obterConfigFuncionario(i);
+    let jornadaDoDia;
+    let ehFeriado = false;
+
+    if (diaSelecionado) {
+        const dataAtual = new Date(anoAtual, mesAtual, diaSelecionado);
+        const diaSemana = dataAtual.getDay();
+        jornadaDoDia = obterJornadaDoDia(i, diaSemana);
+
+        const feriado = verificarFeriado(diaSelecionado, mesAtual, anoAtual);
+        if (feriado) {
+            ehFeriado = true;
+            jornadaDoDia = config.jornadaDescanso;
+        }
+
+        if (dataAtual.getDay() === 0 && jornadaDoDia > 0) {
+            const primeiroDomingo = new Date(anoAtual, mesAtual, 1);
+            while (primeiroDomingo.getDay() !== 0) {
+                primeiroDomingo.setDate(primeiroDomingo.getDate() + 1);
+            }
+            
+            const quartoDomingo = new Date(primeiroDomingo);
+            quartoDomingo.setDate(primeiroDomingo.getDate() + 21);
+            
+            if (diaSelecionado === quartoDomingo.getDate() && 
+                quartoDomingo.getMonth() === mesAtual) {
+                ehFeriado = true;
+                jornadaDoDia = config.jornadaDescanso;
+            }
+        }
+    } else {
+        jornadaDoDia = 8;
+    }
+
+    let totalMinutos = (saida.h * 60 + saida.m) - (entrada.h * 60 + entrada.m);
+    if (iniInt.h && fimInt.h && fimInt.h >= iniInt.h) {
+        totalMinutos -= (fimInt.h * 60 + fimInt.m) - (iniInt.h * 60 + iniInt.m);
+    }
+    const totalReal = totalMinutos / 60;
+
+    let minutosNoturnoReais = 0;
+    
+    if (entrada.h < 5) {
+        minutosNoturnoReais += Math.max(0, Math.min(saida.h * 60 + saida.m, 5 * 60) - (entrada.h * 60 + entrada.m));
+    }
+    
+    if (saida.h >= 22) {
+        minutosNoturnoReais += Math.max(0, (saida.h * 60 + saida.m) - Math.max(entrada.h * 60 + entrada.m, 22 * 60));
+    }
+    
+    if (iniInt.h && fimInt.h) {
+        if ((iniInt.h < 5 && fimInt.h <= 5) || (iniInt.h >= 22 && fimInt.h >= 22)) {
+            minutosNoturnoReais -= (fimInt.h * 60 + fimInt.m) - (iniInt.h * 60 + iniInt.m);
+        }
+    }
+    
+    minutosNoturnoReais = Math.max(0, minutosNoturnoReais);
+
+    const horasNoturnas = minutosNoturnoReais / 52.5;
+    const horasDiurnas = totalReal - (minutosNoturnoReais / 60);
+    const horasTrabalhadas = horasDiurnas + horasNoturnas;
+
+    const horasExtras = Math.max(0, horasTrabalhadas - jornadaDoDia);
+
+    const salarioBase = config.salario;
+    const valorHoraNormal = salarioBase / 220;
+    const extrasNormais = Math.max(0, horasDiurnas - jornadaDoDia);
+
+    let valorExtras;
+    
+    if (ehFeriado) {
+        valorExtras = extrasNormais * valorHoraNormal * (1 + config.percentuais.folga / 100);
+    } else {
+        valorExtras = calcularPercentualEscalonado(extrasNormais, config.percentuais) * valorHoraNormal;
+    }
+
+    const valorNoturno = horasNoturnas * valorHoraNormal * 0.20;
+    const valorTotal = valorExtras + valorNoturno;
+
+    document.getElementById(`totalReal-${i}`).textContent = formatarHoras(totalReal);
+    document.getElementById(`horasTrab-${i}`).textContent = formatarHoras(horasTrabalhadas);
+    document.getElementById(`horasDiur-${i}`).textContent = formatarHoras(horasDiurnas);
+    document.getElementById(`horasNot-${i}`).textContent = formatarHoras(horasNoturnas);
+    document.getElementById(`horasExt-${i}`).textContent = formatarHoras(horasExtras);
+    document.getElementById(`valorExt-${i}`).textContent = 'R$ ' + valorExtras.toFixed(2);
+    document.getElementById(`valorNot-${i}`).textContent = 'R$ ' + valorNoturno.toFixed(2);
+    document.getElementById(`valorTot-${i}`).textContent = 'R$ ' + valorTotal.toFixed(2);
+}
+
+function calcularTodos() {
+    funcionarios.forEach((_, i) => calcularFuncionario(i));
+}
+
+// ========================================
+// FUNÇÕES DE MODAL
+// ========================================
+
+function fecharModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    if (modalId === 'modalConfig') {
+        funcionarioAtual = null;
+    } else if (modalId === 'modalFeriado') {
+        diaConfigurandoFeriado = null;
+        tipoFeriadoSelecionado = null;
+    } else if (modalId === 'modalFuncionarios') {
+        document.getElementById('novoFuncionario').value = '';
+    }
+}
+
+// ========================================
+// EVENT LISTENERS E INICIALIZAÇÃO
+// ========================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Sistema iniciando...');
+    
+    ['jornadaSeg', 'jornadaTer', 'jornadaQua', 'jornadaQui', 'jornadaSex', 'jornadaSab', 'jornadaDom', 'jornadaDescanso'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', calcularTotalSemanal);
+        }
+    });
+
+    criarTabelas();
+    carregarDadosIniciais();
+    
+    console.log('Sistema inicializado!');
+});
+
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
