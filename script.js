@@ -62,7 +62,7 @@ async function carregarDadosIniciais() {
 }
 
 // ========================================
-// VARIÁVEIS GLOBAIS (MANTIDAS ORIGINAIS)
+// VARIÁVEIS GLOBAIS
 // ========================================
 
 let funcionarios = [
@@ -94,7 +94,7 @@ let diaConfigurandoFeriado = null;
 let tipoFeriadoSelecionado = null;
 
 // ========================================
-// FUNÇÕES AUXILIARES (MANTIDAS ORIGINAIS)
+// FUNÇÕES AUXILIARES
 // ========================================
 
 function formatarHoras(horas) {
@@ -179,7 +179,7 @@ function calcularPercentualEscalonado(horasExtras, percentuais) {
 }
 
 // ========================================
-// FUNÇÕES DO CALENDÁRIO (MANTIDAS ORIGINAIS)
+// FUNÇÕES DO CALENDÁRIO
 // ========================================
 
 function gerarCalendario() {
@@ -278,7 +278,7 @@ function proximoMes() {
 }
 
 // ========================================
-// FUNÇÕES DE FERIADOS (MODIFICADAS PARA SALVAR)
+// FUNÇÕES DE FERIADOS
 // ========================================
 
 function verificarFeriado(dia, mes, ano) {
@@ -350,7 +350,6 @@ async function salvarFeriado() {
     
     let resultado;
     if (tipoFeriadoSelecionado === 'normal') {
-        // Remover feriado
         delete feriadosCalendario[chaveData];
         resultado = await chamarAPI('salvarFeriado', {
             data: chaveData,
@@ -386,7 +385,7 @@ async function salvarFeriado() {
 }
 
 // ========================================
-// FUNÇÕES DE FUNCIONÁRIOS (MANTIDAS ORIGINAIS)
+// FUNÇÕES DE FUNCIONÁRIOS
 // ========================================
 
 function abrirModalFuncionarios() {
@@ -484,7 +483,7 @@ function removerFuncionario(index) {
 }
 
 // ========================================
-// FUNÇÕES DE CONFIGURAÇÃO (MODIFICADAS PARA SALVAR)
+// FUNÇÕES DE CONFIGURAÇÃO
 // ========================================
 
 function abrirModal(funcionarioIndex) {
@@ -574,7 +573,7 @@ function atualizarVisualConfigurados() {
 }
 
 // ========================================
-// FUNÇÕES DE DADOS (MODIFICADAS PARA SALVAR)
+// FUNÇÕES DE DADOS
 // ========================================
 
 async function salvarDia() {
@@ -621,7 +620,7 @@ async function carregarDadosDia() {
 
     if (resultado && resultado.dados) {
         const dados = resultado.dados;
-        dadosSalvos[chaveData] = dados; // Manter em memória também
+        dadosSalvos[chaveData] = dados;
         funcionarios.forEach((_, i) => {
             const d = dados[i] || {};
             document.getElementById(`entrada-${i}`).value = d.entrada || '';
@@ -654,7 +653,6 @@ async function limparDia() {
     if (confirm('Tem certeza que deseja limpar os dados deste dia?')) {
         const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
         
-        // Limpar do Google Sheets
         const resultado = await chamarAPI('salvarDia', {
             chaveData: chaveData,
             dados: {}
@@ -673,7 +671,7 @@ async function limparDia() {
 }
 
 // ========================================
-// FUNÇÕES DE TABELAS (MANTIDAS ORIGINAIS)
+// FUNÇÕES DE TABELAS
 // ========================================
 
 function criarTabelas() {
@@ -726,7 +724,7 @@ function criarTabelas() {
 }
 
 // ========================================
-// FUNÇÃO PRINCIPAL DE CÁLCULO (MANTIDA ORIGINAL)
+// FUNÇÃO PRINCIPAL DE CÁLCULO
 // ========================================
 
 function calcularFuncionario(i) {
@@ -841,7 +839,7 @@ function calcularTodos() {
 }
 
 // ========================================
-// FUNÇÕES DE MODAL (MANTIDAS ORIGINAIS)
+// FUNÇÕES DE MODAL
 // ========================================
 
 function fecharModal(modalId) {
@@ -857,7 +855,7 @@ function fecharModal(modalId) {
 }
 
 // ========================================
-// EVENT LISTENERS E INICIALIZAÇÃO (MODIFICADA)
+// EVENT LISTENERS E INICIALIZAÇÃO
 // ========================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -885,49 +883,4 @@ window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
         event.target.style.display = 'none';
     }
-}
-
-// ========================================
-// FUNÇÕES EXTRAS PARA MONITORAMENTO
-// ========================================
-
-// Função para testar a conexão com a API
-async function testarConexao() {
-    console.log('🔗 Testando conexão...');
-    try {
-        const response = await fetch(API_URL);
-        const resultado = await response.json();
-        console.log('✅ Conexão OK:', resultado);
-        return true;
-    } catch (error) {
-        console.error('❌ Erro de conexão:', error);
-        return false;
-    }
-}
-
-// Função para debug - ver dados salvos
-function verDadosSalvos() {
-    console.log('📊 Dados em memória:');
-    console.log('Dados salvos:', dadosSalvos);
-    console.log('Configurações:', configFuncionarios);
-    console.log('Feriados:', feriadosCalendario);
-}
-
-// Auto-save quando digitar (opcional)
-function configurarAutoSave() {
-    funcionarios.forEach((_, i) => {
-        ['entrada', 'iniInt', 'fimInt', 'saida'].forEach(campo => {
-            const elemento = document.getElementById(`${campo}-${i}`);
-            if (elemento) {
-                elemento.addEventListener('blur', () => {
-                    // Auto-salvar após 2 segundos de inatividade
-                    setTimeout(() => {
-                        if (diaSelecionado) {
-                            salvarDia();
-                        }
-                    }, 2000);
-                });
-            }
-        });
-    });
 }
