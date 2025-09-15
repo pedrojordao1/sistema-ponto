@@ -634,10 +634,26 @@ async function salvarDia() {
 async function carregarDadosDia() {
     if (!diaSelecionado) return;
 
-    console.log('Carregando dados do Google Sheets...');
-    
     const chaveData = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+    console.log('Carregando dados para:', chaveData);
     
+    // PRIMEIRO: verificar dados locais (salvos na sessão)
+    if (dadosSalvos[chaveData]) {
+        console.log('Usando dados locais salvos');
+        const dados = dadosSalvos[chaveData];
+        funcionarios.forEach((_, i) => {
+            const d = dados[i] || {};
+            document.getElementById(`entrada-${i}`).value = d.entrada || '';
+            document.getElementById(`iniInt-${i}`).value = d.iniInt || '';
+            document.getElementById(`fimInt-${i}`).value = d.fimInt || '';
+            document.getElementById(`saida-${i}`).value = d.saida || '';
+        });
+        calcularTodos();
+        return; // Parar aqui, não tentar carregar do Google Sheets
+    }
+    
+    // SEGUNDO: se não tem dados locais, tentar Google Sheets
+    console.log('Tentando carregar do Google Sheets...');
     const resultado = await chamarAPI('carregarDia', {
         chaveData: chaveData
     });
@@ -645,7 +661,7 @@ async function carregarDadosDia() {
     if (resultado && resultado.dados) {
         console.log('Dados encontrados no Google Sheets');
         const dados = resultado.dados;
-        dadosSalvos[chaveData] = dados;
+        dadosSalvos[chaveData] = dados; // Salvar localmente também
         funcionarios.forEach((_, i) => {
             const d = dados[i] || {};
             document.getElementById(`entrada-${i}`).value = d.entrada || '';
@@ -655,7 +671,7 @@ async function carregarDadosDia() {
         });
         calcularTodos();
     } else {
-        console.log('Nenhum dado encontrado para este dia');
+        console.log('Nenhum dado encontrado - limpando formulário');
         limparFormulario();
     }
 }
