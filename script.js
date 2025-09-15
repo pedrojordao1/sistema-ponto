@@ -2,7 +2,7 @@
 // CONFIGURAÇÃO DA API GOOGLE SHEETS
 // ========================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbygdeOvdYPu1G1bs-AVb2XhHJD8QmQ9w1QIJTA2AXX8zhpsxwl9h-7SGmXBzJYu_u44/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbywIo0NOt1f5T91mY9xpeaXogPL4SPgD0cAPmB5fcHLiMFQVLUr6gkpw2Ys9YAKpO57bA/exec';
 
 // Função para fazer requisições à API (versão sem CORS)
 async function chamarAPI(action, dados = {}) {
