@@ -776,20 +776,41 @@ function criarTabelas() {
 // ========================================
 
 function calcularFuncionario(i) {
-    const entrada = converterHora(document.getElementById(`entrada-${i}`).value);
-    const iniInt = converterHora(document.getElementById(`iniInt-${i}`).value);
-    const fimInt = converterHora(document.getElementById(`fimInt-${i}`).value);
-    const saida = converterHora(document.getElementById(`saida-${i}`).value);
+    // Verificar se os elementos existem antes de tentar usar
+    const entradaEl = document.getElementById(`entrada-${i}`);
+    const iniIntEl = document.getElementById(`iniInt-${i}`);
+    const fimIntEl = document.getElementById(`fimInt-${i}`);
+    const saidaEl = document.getElementById(`saida-${i}`);
+
+    if (!entradaEl || !iniIntEl || !fimIntEl || !saidaEl) {
+        console.warn(`Elementos não encontrados para funcionário ${i}`);
+        return;
+    }
+
+    const entrada = converterHora(entradaEl.value);
+    const iniInt = converterHora(iniIntEl.value);
+    const fimInt = converterHora(fimIntEl.value);
+    const saida = converterHora(saidaEl.value);
+
+    // Função auxiliar para atualizar elementos com segurança
+    function atualizarElemento(id, texto) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = texto;
+        } else {
+            console.warn(`Elemento ${id} não encontrado`);
+        }
+    }
 
     if (!entrada.h && !saida.h) {
-        document.getElementById(`totalReal-${i}`).textContent = '0h00';
-        document.getElementById(`horasTrab-${i}`).textContent = '0h00';
-        document.getElementById(`horasDiur-${i}`).textContent = '0h00';
-        document.getElementById(`horasNot-${i}`).textContent = '0h00';
-        document.getElementById(`horasExt-${i}`).textContent = '0h00';
-        document.getElementById(`valorExt-${i}`).textContent = 'R$ 0,00';
-        document.getElementById(`valorNot-${i}`).textContent = 'R$ 0,00';
-        document.getElementById(`valorTot-${i}`).textContent = 'R$ 0,00';
+        atualizarElemento(`totalReal-${i}`, '0h00');
+        atualizarElemento(`horasTrab-${i}`, '0h00');
+        atualizarElemento(`horasDiur-${i}`, '0h00');
+        atualizarElemento(`horasNot-${i}`, '0h00');
+        atualizarElemento(`horasExt-${i}`, '0h00');
+        atualizarElemento(`valorExt-${i}`, 'R$ 0,00');
+        atualizarElemento(`valorNot-${i}`, 'R$ 0,00');
+        atualizarElemento(`valorTot-${i}`, 'R$ 0,00');
         return;
     }
 
@@ -872,14 +893,15 @@ function calcularFuncionario(i) {
     const valorNoturno = horasNoturnas * valorHoraNormal * 0.20;
     const valorTotal = valorExtras + valorNoturno;
 
-    document.getElementById(`totalReal-${i}`).textContent = formatarHoras(totalReal);
-    document.getElementById(`horasTrab-${i}`).textContent = formatarHoras(horasTrabalhadas);
-    document.getElementById(`horasDiur-${i}`).textContent = formatarHoras(horasDiurnas);
-    document.getElementById(`horasNot-${i}`).textContent = formatarHoras(horasNoturnas);
-    document.getElementById(`horasExt-${i}`).textContent = formatarHoras(horasExtras);
-    document.getElementById(`valorExt-${i}`).textContent = 'R$ ' + valorExtras.toFixed(2);
-    document.getElementById(`valorNot-${i}`).textContent = 'R$ ' + valorNoturno.toFixed(2);
-    document.getElementById(`valorTot-${i}`).textContent = 'R$ ' + valorTotal.toFixed(2);
+    // Usar a função auxiliar para atualizar todos os elementos
+    atualizarElemento(`totalReal-${i}`, formatarHoras(totalReal));
+    atualizarElemento(`horasTrab-${i}`, formatarHoras(horasTrabalhadas));
+    atualizarElemento(`horasDiur-${i}`, formatarHoras(horasDiurnas));
+    atualizarElemento(`horasNot-${i}`, formatarHoras(horasNoturnas));
+    atualizarElemento(`horasExt-${i}`, formatarHoras(horasExtras));
+    atualizarElemento(`valorExt-${i}`, 'R$ ' + valorExtras.toFixed(2));
+    atualizarElemento(`valorNot-${i}`, 'R$ ' + valorNoturno.toFixed(2));
+    atualizarElemento(`valorTot-${i}`, 'R$ ' + valorTotal.toFixed(2));
 }
 
 function calcularTodos() {
