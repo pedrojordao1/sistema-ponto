@@ -668,14 +668,17 @@ async function salvarDia() {
     const chaveData = formatarChaveData(anoAtual, mesAtual, diaSelecionado);
     const dados = {};
 
-    funcionarios.forEach((_, i) => {
-        dados[i] = {
+    // USAR NOMES EM VEZ DE ÍNDICES
+    funcionarios.forEach((nomeFuncionario, i) => {
+        dados[nomeFuncionario] = {
             entrada: document.getElementById(`entrada-${i}`).value,
             iniInt: document.getElementById(`iniInt-${i}`).value,
             fimInt: document.getElementById(`fimInt-${i}`).value,
             saida: document.getElementById(`saida-${i}`).value
         };
     });
+
+    console.log('Dados a serem salvos (por nome):', dados);
 
     const resultado = await chamarAPI('salvarDia', {
         chaveData: chaveData,
@@ -693,32 +696,17 @@ async function salvarDia() {
     }
 }
 
-// FUNÇÃO CORRIGIDA PARA CARREGAR DADOS
 async function carregarDadosDia() {
     if (!diaSelecionado) return;
 
-    // Usar o mesmo formato que está sendo salvo
     const chaveData = formatarChaveData(anoAtual, mesAtual, diaSelecionado);
-    const chaveAntiga = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
     
     console.log('=== DEBUG CARREGAMENTO ===');
     console.log('Dia selecionado:', diaSelecionado);
-    console.log('Chave padronizada:', chaveData);
-    console.log('Chave antiga:', chaveAntiga);
+    console.log('Chave:', chaveData);
     
     // PRIMEIRO: Verificar dados locais (cache)
-    let dados = dadosSalvos[chaveAntiga] || dadosSalvos[chaveData];
-    
-    if (!dados) {
-        // Procurar por qualquer chave que comece com a data
-        const chaveEncontrada = Object.keys(dadosSalvos).find(chave => 
-            chave.startsWith(chaveData) || chave.startsWith(chaveAntiga)
-        );
-        if (chaveEncontrada) {
-            dados = dadosSalvos[chaveEncontrada];
-            console.log('Dados encontrados localmente com chave:', chaveEncontrada);
-        }
-    }
+    let dados = dadosSalvos[chaveData];
     
     if (dados) {
         console.log('Usando dados locais salvos');
@@ -737,67 +725,39 @@ async function carregarDadosDia() {
     if (resultado && resultado.dados) {
         console.log('Dados encontrados no Google Sheets');
         dados = resultado.dados;
-        // Salvar no cache local com ambas as chaves
         dadosSalvos[chaveData] = dados;
-        dadosSalvos[chaveAntiga] = dados;
         preencherFormulario(dados);
-    } else if (resultado && resultado.debug && resultado.debug.chavesEncontradas) {
-        console.log('Chaves encontradas na planilha:', resultado.debug.chavesEncontradas);
-        
-        // Procurar uma chave compatível
-        const chavesEncontradas = resultado.debug.chavesEncontradas;
-        const chaveCompativel = chavesEncontradas.find(chave => {
-            // Extrair apenas a parte da data (primeiros 10 caracteres)
-            const dataExtraida = chave.substring(0, 10);
-            return dataExtraida === chaveData;
-        });
-        
-        if (chaveCompativel) {
-            console.log('Tentando carregar com chave compatível:', chaveCompativel);
-            
-            // Tentar carregar com a chave exata encontrada
-            const resultadoExato = await chamarAPI('carregarDia', {
-                chaveData: chaveCompativel
-            });
-            
-            if (resultadoExato && resultadoExato.dados) {
-                console.log('Dados carregados com chave exata!');
-                dados = resultadoExato.dados;
-                dadosSalvos[chaveCompativel] = dados;
-                dadosSalvos[chaveData] = dados;
-                dadosSalvos[chaveAntiga] = dados;
-                preencherFormulario(dados);
-                return;
-            }
-        }
-        
-        console.log('Nenhum dado compatível encontrado - limpando formulário');
-        limparFormulario();
     } else {
         console.log('Nenhum dado encontrado - limpando formulário');
         limparFormulario();
     }
 }
 
-// Função auxiliar para preencher o formulário
+// ========================================
+// FUNÇÃO PREENCHIMENTO CORRIGIDA
+// ========================================
 function preencherFormulario(dados) {
-    funcionarios.forEach((_, i) => {
-        const d = dados[i] || {};
-        document.getElementById(`entrada-${i}`).value = d.entrada || '';
-        document.getElementById(`iniInt-${i}`).value = d.iniInt || '';
-        document.getElementById(`fimInt-${i}`).value = d.fimInt || '';
-        document.getElementById(`saida-${i}`).value = d.saida || '';
+    console.log('Preenchendo formulário com dados:', dados);
+    
+    funcionarios.forEach((nomeFuncionario, i) => {
+        // BUSCAR DADOS POR NOME DO FUNCIONÁRIO
+        const dadosFuncionario = dados[nomeFuncionario];
+        
+        if (dadosFuncionario) {
+            console.log(`Preenchendo dados de ${nomeFuncionario}:`, dadosFuncionario);
+            document.getElementById(`entrada-${i}`).value = dadosFuncionario.entrada || '';
+            document.getElementById(`iniInt-${i}`).value = dadosFuncionario.iniInt || '';
+            document.getElementById(`fimInt-${i}`).value = dadosFuncionario.fimInt || '';
+            document.getElementById(`saida-${i}`).value = dadosFuncionario.saida || '';
+        } else {
+            // Limpar campos se não há dados para este funcionário
+            document.getElementById(`entrada-${i}`).value = '';
+            document.getElementById(`iniInt-${i}`).value = '';
+            document.getElementById(`fimInt-${i}`).value = '';
+            document.getElementById(`saida-${i}`).value = '';
+        }
     });
-    calcularTodos();
-}
-
-function limparFormulario() {
-    funcionarios.forEach((_, i) => {
-        ['entrada', 'iniInt', 'fimInt', 'saida'].forEach(campo => {
-            const elemento = document.getElementById(`${campo}-${i}`);
-            if (elemento) elemento.value = '';
-        });
-    });
+    
     calcularTodos();
 }
 
