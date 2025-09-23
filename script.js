@@ -654,7 +654,7 @@ function atualizarVisualConfigurados() {
 }
 
 // ========================================
-// FUNÇÕES DE DADOS
+// FUNÇÕES DE DADOS - CORRIGIDAS
 // ========================================
 
 async function salvarDia() {
@@ -693,22 +693,26 @@ async function salvarDia() {
     }
 }
 
+// FUNÇÃO CORRIGIDA PARA CARREGAR DADOS
 async function carregarDadosDia() {
     if (!diaSelecionado) return;
 
+    // Usar o mesmo formato que está sendo salvo
     const chaveData = formatarChaveData(anoAtual, mesAtual, diaSelecionado);
-    const chaveLocal = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
+    const chaveAntiga = `${anoAtual}-${mesAtual}-${diaSelecionado}`;
     
     console.log('=== DEBUG CARREGAMENTO ===');
     console.log('Dia selecionado:', diaSelecionado);
     console.log('Chave padronizada:', chaveData);
-    console.log('Chave local:', chaveLocal);
+    console.log('Chave antiga:', chaveAntiga);
     
-    let dados = dadosSalvos[chaveLocal] || dadosSalvos[chaveData];
+    // PRIMEIRO: Verificar dados locais (cache)
+    let dados = dadosSalvos[chaveAntiga] || dadosSalvos[chaveData];
     
     if (!dados) {
+        // Procurar por qualquer chave que comece com a data
         const chaveEncontrada = Object.keys(dadosSalvos).find(chave => 
-            chave.startsWith(chaveData) || chave.startsWith(chaveLocal)
+            chave.startsWith(chaveData) || chave.startsWith(chaveAntiga)
         );
         if (chaveEncontrada) {
             dados = dadosSalvos[chaveEncontrada];
@@ -722,6 +726,7 @@ async function carregarDadosDia() {
         return;
     }
     
+    // SEGUNDO: Tentar carregar do Google Sheets
     console.log('Tentando carregar do Google Sheets...');
     const resultado = await chamarAPI('carregarDia', {
         chaveData: chaveData
@@ -732,13 +737,17 @@ async function carregarDadosDia() {
     if (resultado && resultado.dados) {
         console.log('Dados encontrados no Google Sheets');
         dados = resultado.dados;
+        // Salvar no cache local com ambas as chaves
         dadosSalvos[chaveData] = dados;
+        dadosSalvos[chaveAntiga] = dados;
         preencherFormulario(dados);
     } else if (resultado && resultado.debug && resultado.debug.chavesEncontradas) {
         console.log('Chaves encontradas na planilha:', resultado.debug.chavesEncontradas);
         
+        // Procurar uma chave compatível
         const chavesEncontradas = resultado.debug.chavesEncontradas;
         const chaveCompativel = chavesEncontradas.find(chave => {
+            // Extrair apenas a parte da data (primeiros 10 caracteres)
             const dataExtraida = chave.substring(0, 10);
             return dataExtraida === chaveData;
         });
@@ -746,6 +755,7 @@ async function carregarDadosDia() {
         if (chaveCompativel) {
             console.log('Tentando carregar com chave compatível:', chaveCompativel);
             
+            // Tentar carregar com a chave exata encontrada
             const resultadoExato = await chamarAPI('carregarDia', {
                 chaveData: chaveCompativel
             });
@@ -755,6 +765,7 @@ async function carregarDadosDia() {
                 dados = resultadoExato.dados;
                 dadosSalvos[chaveCompativel] = dados;
                 dadosSalvos[chaveData] = dados;
+                dadosSalvos[chaveAntiga] = dados;
                 preencherFormulario(dados);
                 return;
             }
@@ -768,6 +779,7 @@ async function carregarDadosDia() {
     }
 }
 
+// Função auxiliar para preencher o formulário
 function preencherFormulario(dados) {
     funcionarios.forEach((_, i) => {
         const d = dados[i] || {};
@@ -816,6 +828,45 @@ async function limparDia() {
             alert('Erro ao limpar dados!');
         }
     }
+}
+
+// Função para sincronizar dados existentes (executar UMA VEZ no console)
+async function sincronizarDadosExistentes() {
+    console.log('Iniciando sincronização de dados existentes...');
+    
+    // Tentar carregar dados dos últimos 30 dias
+    const hoje = new Date();
+    for (let i = 0; i < 30; i++) {
+        const data = new Date(hoje);
+        data.setDate(hoje.getDate() - i);
+        
+        const ano = data.getFullYear();
+        const mes = data.getMonth();
+        const dia = data.getDate();
+        
+        const chaveData = formatarChaveData(ano, mes, dia);
+        
+        console.log(`Verificando ${chaveData}...`);
+        
+        const resultado = await chamarAPI('carregarDia', {
+            chaveData: chaveData
+        });
+        
+        if (resultado && resultado.dados) {
+            console.log(`Dados encontrados para ${chaveData}`);
+            dadosSalvos[chaveData] = resultado.dados;
+        }
+        
+        // Pausa de 100ms para não sobrecarregar a API
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.log('Sincronização concluída!');
+    console.log('Dados sincronizados:', Object.keys(dadosSalvos));
+    
+    // Atualizar calendário
+    console.log('Atualizando calendário...');
+    gerarCalendario();
 }
 
 // ========================================
@@ -1029,3 +1080,4 @@ window.onclick = function(event) {
 }
 
 window.debugChaves = debugChaves;
+window.sincronizarDadosExistentes = sincronizarDadosExistentes;
