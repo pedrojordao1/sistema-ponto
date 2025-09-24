@@ -1013,6 +1013,36 @@ function fecharModal(modalId) {
     }
 }
 
+function limparFormulario() {
+    console.log('Limpando formulário...');
+    
+    funcionarios.forEach((nomeFuncionario, i) => {
+        const campos = ['entrada', 'iniInt', 'fimInt', 'saida'];
+        
+        campos.forEach(campo => {
+            const elemento = document.getElementById(`${campo}-${i}`);
+            if (elemento) {
+                elemento.value = '';
+            }
+        });
+        
+        // Limpar também os campos de resultado
+        const resultados = ['totalReal', 'horasTrab', 'horasDiur', 'horasNot', 'horasExt', 'valorExt', 'valorNot', 'valorTot'];
+        resultados.forEach(resultado => {
+            const elemento = document.getElementById(`${resultado}-${i}`);
+            if (elemento) {
+                if (resultado.includes('valor') || resultado.includes('Valor')) {
+                    elemento.textContent = 'R$ 0,00';
+                } else {
+                    elemento.textContent = '0h00';
+                }
+            }
+        });
+    });
+    
+    console.log('Formulário limpo!');
+}
+
 // ========================================
 // EVENT LISTENERS E INICIALIZAÇÃO
 // ========================================
