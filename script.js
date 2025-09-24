@@ -34,24 +34,21 @@ async function chamarAPI(action, dados = {}) {
     }
 }
 
-// Carregar dados na inicialização
 async function carregarDadosIniciais() {
     console.log('Carregando dados salvos do Google Sheets...');
     
     try {
-        // Carregar lista de funcionários
+        // Carregar funcionários
         const funcionariosResult = await chamarAPI('carregarFuncionarios');
         if (funcionariosResult && funcionariosResult.funcionarios && funcionariosResult.funcionarios.length > 0) {
             funcionarios = funcionariosResult.funcionarios;
-            // ORDENAR ALFABETICAMENTE ao carregar
             funcionarios.sort((a, b) => a.localeCompare(b, 'pt-BR'));
             console.log('Funcionários carregados:', funcionarios.length);
         } else {
-            console.log('Nenhum funcionário salvo, usando lista padrão');
-            // ORDENAR ALFABETICAMENTE a lista padrão
             funcionarios.sort((a, b) => a.localeCompare(b, 'pt-BR'));
         }
         
+        // Carregar configurações
         const configsResult = await chamarAPI('carregarConfigs');
         if (configsResult && configsResult.configs) {
             configFuncionarios = configsResult.configs;
@@ -59,17 +56,19 @@ async function carregarDadosIniciais() {
             atualizarVisualConfigurados();
         }
         
+        // Carregar feriados
         const feriadosResult = await chamarAPI('carregarFeriados');
         if (feriadosResult && feriadosResult.feriados) {
             feriadosCalendario = feriadosResult.feriados;
             console.log('Feriados carregados:', Object.keys(feriadosCalendario).length);
         }
         
+        // SINCRONIZAR DADOS DOS DIAS
+        await sincronizarComGoogleSheets();
+        
         console.log('Todos os dados carregados do Google Sheets!');
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        console.log('Continuando sem dados salvos...');
-        // ORDENAR ALFABETICAMENTE mesmo em caso de erro
         funcionarios.sort((a, b) => a.localeCompare(b, 'pt-BR'));
     }
     
@@ -732,6 +731,52 @@ async function carregarDadosDia() {
         limparFormulario();
     }
 }
+
+// ADICIONE esta função no seu script.js, logo após a função carregarDadosDia()
+
+async function sincronizarComGoogleSheets() {
+    console.log('🔄 Sincronizando dados com Google Sheets...');
+    
+    try {
+        // Listar todas as chaves salvas
+        const resultado = await chamarAPI('listarChaves');
+        
+        if (resultado && resultado.chaves) {
+            console.log(`📊 Encontradas ${resultado.chaves.length} chaves na planilha`);
+            
+            // Para cada chave, carregar e salvar no cache local
+            for (const item of resultado.chaves) {
+                if (item.temDados === 'Sim') {
+                    console.log(`📥 Carregando: ${item.chave}`);
+                    
+                    // Tentar carregar com a chave exata
+                    const dados = await chamarAPI('carregarDia', {
+                        chaveData: item.chave
+                    });
+                    
+                    if (dados && dados.dados) {
+                        // Extrair apenas a parte da data (2025-09-27)
+                        const chaveSimples = item.chave.substring(0, 10);
+                        
+                        // Salvar no cache local com chave simples
+                        dadosSalvos[chaveSimples] = dados.dados;
+                        console.log(`✅ Sincronizado: ${chaveSimples}`);
+                    }
+                }
+            }
+            
+            console.log('🎉 Sincronização concluída!');
+            console.log('📦 Dados no cache:', Object.keys(dadosSalvos));
+            
+            // Atualizar calendário para mostrar dias com dados
+            gerarCalendario();
+            
+        }
+    } catch (error) {
+        console.log('❌ Erro na sincronização:', error);
+    }
+}
+
 
 // ========================================
 // FUNÇÃO PREENCHIMENTO CORRIGIDA
